@@ -1,5 +1,30 @@
 #include "http_handle.h"
 
+static const char* get_file_type(const char *type);
+
+mime_type_t http_mime[] = 
+{
+    {".html", "text/html"},
+    {".xml", "text/xml"},
+    {".xhtml", "application/xhtml+xml"},
+    {".txt", "text/plain"},
+    {".rtf", "application/rtf"},
+    {".pdf", "application/pdf"},
+    {".word", "application/msword"},
+    {".png", "image/png"},
+    {".gif", "image/gif"},
+    {".jpg", "image/jpeg"},
+    {".jpeg", "image/jpeg"},
+    {".au", "audio/basic"},
+    {".mpeg", "video/mpeg"},
+    {".mpg", "video/mpeg"},
+    {".avi", "video/x-msvideo"},
+    {".gz", "application/x-gzip"},
+    {".tar", "application/x-tar"},
+    {".css", "text/css"},
+    {NULL ,"text/plain"}
+};
+
 int set_method_for_request(http_request_t *req)
 {
 	char met[10], *p;
@@ -116,4 +141,18 @@ int set_url_for_request(http_request_t *req)
 	req->query_start = p + 1;
 	req->query_end = req->url_end - 1;
 	return DLY_OK;
+}
+
+const char* get_file_type(const char *type)
+{
+    if (type == NULL) {
+        return "text/plain";
+    }
+
+    int i;
+    for (i = 0; http_mime[i].type != NULL; ++i) {
+        if (strcmp(type, http_mime[i].type) == 0)
+            return http_mime[i].value;
+    }
+    return http_mime[i].value;
 }
