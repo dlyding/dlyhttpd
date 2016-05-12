@@ -6,6 +6,7 @@
 #define HTTP_REQUEST_ERROR  -10
 #define HTTP_METHOD_ERROR   -11
 #define HTTP_PROTOCOL_ERROR -12
+#define HTTP_PATH_ERROR     -13
 
 #define GET     10
 #define POST    11
@@ -16,35 +17,37 @@
 #define CONNECT 16
 #define OPTIONS 17
 
+#define MAX_BUF 8124
+
 typedef struct http_request_s {
-    void *root;
+    char *root;                  // 不包含'/'
     int fd;
     char buf[MAX_BUF];
-    void *pos, *last;
+    char *pos, *last;
     int state;
-    void *request_start;
-    void *method_start;
-    void *method_end;   
+    char *request_start;
+    char *method_start;
+    char *method_end;   
     int method;
-    void *url_start;
-    void *url_end;       
-    void *path_start;           // 包含'/'
-    void *path_end;
-    void *query_start;
-    void *query_end;
-    void *protocol_start;
-    void *protocol_end;
+    char *url_start;
+    char *url_end;       
+    char *path_start;           // 包含'/'
+    char *path_end;
+    char *query_start;
+    char *query_end;
+    char *protocol_start;
+    char *protocol_end;
     int http_major;
     int http_minor;
-    void *request_end;
+    char *request_end;
 
     struct list_head list;  /* store http header */
-    void *cur_header_key_start;
-    void *cur_header_key_end;
-    void *cur_header_value_start;
-    void *cur_header_value_end;
+    char *cur_header_key_start;
+    char *cur_header_key_end;
+    char *cur_header_value_start;
+    char *cur_header_value_end;
 
-    void *body_start;
+    char *body_start;
 
 } http_request_t;
 
