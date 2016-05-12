@@ -156,3 +156,26 @@ const char* get_file_type(const char *type)
     }
     return http_mime[i].value;
 }
+
+int get_information_from_url(const http_request_t *req, char *filename, char *querystring)
+{
+	strcpy(filename, req->root);
+	if(req->path_start == req->path_end) {
+		if(*(req->path_start) == '/') {
+			strcat(filename, "/index.html");
+		}
+		else {
+			return HTTP_PATH_ERROR;
+		}
+	}
+	else {
+		strncat(filename, req->path_start, req->path_end - req->path_start + 1);
+	}
+	if(querystring == NULL) {
+		return DLY_OK;
+	}
+	else {
+		strncpy(querystring, query_start, query_end - query_start + 1);
+		return DLY_OK;
+	}
+}
