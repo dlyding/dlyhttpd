@@ -3,7 +3,7 @@
 int http_parse_request_line(http_request_t *req) {
     u_char ch, *p;
     enum {
-        st_start = 0,
+        st_line_start = 0,
         st_method,
         st_url,
         st_protocol,
@@ -20,7 +20,7 @@ int http_parse_request_line(http_request_t *req) {
         switch (state) {
 
         /* HTTP methods: GET, HEAD, POST */
-        case st_start:
+        case st_line_start:
             if (ch == CR || ch == LF) {
                 break;
             }
@@ -110,7 +110,7 @@ done:
         r->request_end = p;
     }
 
-    req->state = st_start;
+    req->state = st_head_start;
 
     return DLY_OK;
 }
@@ -118,7 +118,7 @@ done:
 int http_parse_request_head(http_request_t *req) {
     u_char c, ch, *p, *m;
     enum {
-        sw_start = 0,
+        sw_head_start = 0,
         sw_key,
         sw_spaces_before_colon,
         sw_spaces_after_colon,
