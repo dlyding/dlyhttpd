@@ -24,13 +24,13 @@ void dorequest(struct schedule *s, void *ud)
 
         if (n == 0) {   // EOF
             log_info("read return 0, ready to close fd %d", fd);
-            goto err;
+            goto err2;
         }
 
         if (n < 0) {
             if (errno != EAGAIN) {
                 log_err("read err, and errno = %d", errno);
-                goto err;
+                goto err2;
             }
             coroutine_yield(s);
             continue;
@@ -46,7 +46,7 @@ void dorequest(struct schedule *s, void *ud)
         }
         else if (rc != DLY_OK) {
             log_err("rc != DLY_OK");
-            goto err;
+            goto err2;
         }
 
         log_info("ready to parse request header");
@@ -56,7 +56,7 @@ void dorequest(struct schedule *s, void *ud)
         }
         else if (rc != DLY_OK) {
             log_err("rc != DLY_OK");
-            goto err;
+            goto err2;
         }
 
         rc = set_method_for_request(req);
@@ -76,7 +76,7 @@ void dorequest(struct schedule *s, void *ud)
         http_response_t *res = (http_response_t *)malloc(sizeof(http_response_t));
         if (res == NULL) {
             log_err("no enough space for zv_http_out_t");
-            exit(1);
+            goto err2;
         }
 
         rc = init_response_t(res, fd);
@@ -84,13 +84,13 @@ void dorequest(struct schedule *s, void *ud)
 
         if(stat(filename, &sbuf) < 0) {
             do_error(fd, filename, "404", "Not Found", "dlyhttpd can't find the file");
-            continue;   // TODO
+            goto err1;
         }
 
         if (!(S_ISREG(sbuf.st_mode)) || !(S_IRUSR & sbuf.st_mode))
         {
             do_error(fd, filename, "403", "Forbidden", "dlyhttpd can't read the file");
-            continue;  // TODO
+            goto err1;
         }
         
         res->mtime = sbuf.st_mtime;
@@ -116,15 +116,19 @@ void dorequest(struct schedule *s, void *ud)
         }
         else{
             // 释放空间
+            free(res);
+            init_request_t(req);
         }
 
     }
     
     return;
 
-err:
+err1:
+    free(res);
+err2:
 close:
-    //free(ptr);
+    free(req);
     close(fd);
 }
 
