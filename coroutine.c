@@ -6,7 +6,7 @@ struct coroutine {
 	coroutine_func func;
 	void *ud;
 	ucontext_t ctx;
-	struct schedule * sch;
+	struct schedule *sch;
 	ptrdiff_t cap;
 	ptrdiff_t size;
 	int status;
