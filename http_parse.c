@@ -94,6 +94,9 @@ int http_parse_request_line(http_request_t *req) {
             default:
                 return HTTP_REQUEST_ERROR;
             }
+            break;
+        default:
+            return 0;
         }
     }
 
@@ -110,131 +113,131 @@ done:
         r->request_end = p;
     }
 
-    req->state = st_head_start;
+    req->state = 6;
 
     return DLY_OK;
 }
 
-int http_parse_request_head(http_request_t *req) {
+int http_parse_request_header(http_request_t *req) {
     u_char c, ch, *p, *m;
     enum {
-        sw_head_start = 0,
-        sw_key,
-        sw_spaces_before_colon,
-        sw_spaces_after_colon,
-        sw_value,
-        sw_cr,
-        sw_crlf,
-        sw_crlfcr
+        st_head_start = 6,
+        st_key,
+        st_spaces_before_colon,
+        st_spaces_after_colon,
+        st_value,
+        st_cr,
+        st_crlf,
+        st_crlfcr
     } state;
 
-    state = r->state;
-    check(state == 0, "state should be 0");
+    state = req->state;
+    //check(state == 0, "state should be 0");
 
     //log_info("ready to parese request body, start = %d, last= %d", r->pos, r->last);
 
-    zv_http_header_t *hd; 
-    for (p = r->pos; p < r->last; p++) {
+    http_header_t *hd; 
+    for (p = req->pos; p < req->last; p++) {
         ch = *p;
 
         switch (state) {
-        case sw_start:
+        case st_head_start:
             if (ch == CR || ch == LF) {
                 break;
             }
 
-            r->cur_header_key_start = p;
-            state = sw_key;
+            req->cur_header_key_start = p;
+            state = st_key;
             break;
-        case sw_key:
+        case st_key:
             if (ch == ' ') {
-                r->cur_header_key_end = p;
-                state = sw_spaces_before_colon;
+                req->cur_header_key_end = p;
+                state = st_spaces_before_colon;
                 break;
             }
 
             if (ch == ':') {
-                r->cur_header_key_end = p;
-                state = sw_spaces_after_colon;
+                req->cur_header_key_end = p;
+                state = st_spaces_after_colon;
                 break;
             }
 
             break;
-        case sw_spaces_before_colon:
+        case st_spaces_before_colon:
             if (ch == ' ') {
                 break;
             } else if (ch == ':') {
-                state = sw_spaces_after_colon;
+                state = st_spaces_after_colon;
                 break;
             } else {
-                return ZV_HTTP_PARSE_INVALID_HEADER;
+                return HTTP_HEAD_ERROR;
             }
-        case sw_spaces_after_colon:
+        case st_spaces_after_colon:
             if (ch == ' ') {
                 break;
             }
 
-            state = sw_value;
-            r->cur_header_value_start = p;
+            state = st_value;
+            req->cur_header_value_start = p;
             break;
-        case sw_value:
+        case st_value:
             if (ch == CR) {
-                r->cur_header_value_end = p;
-                state = sw_cr;
+                req->cur_header_value_end = p;
+                state = st_cr;
             }
 
             if (ch == LF) {
-                r->cur_header_value_end = p;
-                state = sw_crlf;
+                req->cur_header_value_end = p;
+                state = st_crlf;
             }
             
             break;
-        case sw_cr:
+        case st_cr:
             if (ch == LF) {
-                state = sw_crlf;
+                state = st_crlf;
                 // save the current http header
-                hd = (zv_http_request_t *)malloc(sizeof(zv_http_request_t));
-                hd->key_start   = r->cur_header_key_start;
-                hd->key_end     = r->cur_header_key_end;
-                hd->value_start = r->cur_header_value_start;
-                hd->value_end   = r->cur_header_value_end;
+                hd = (http_header_t *)malloc(sizeof(http_header_t));
+                hd->key_start   = req->cur_header_key_start;
+                hd->key_end     = req->cur_header_key_end;
+                hd->value_start = req->cur_header_value_start;
+                hd->value_end   = req->cur_header_value_end;
 
-                list_add(&(hd->list), &(r->list));
+                list_add(&(hd->list), &(req->list));
 
                 break;
             } else {
-                return ZV_HTTP_PARSE_INVALID_HEADER;
+                return HTTP_HEAD_ERROR;
             }
 
-        case sw_crlf:
+        case st_crlf:
             if (ch == CR) {
                 state = sw_crlfcr;
             } else {
-                r->cur_header_key_start = p;
-                state = sw_key;
+                req->cur_header_key_start = p;
+                state = st_key;
             }
             break;
 
-        case sw_crlfcr:
+        case st_crlfcr:
             switch (ch) {
             case LF:
                 goto done;
             default:
-                return ZV_HTTP_PARSE_INVALID_HEADER;
+                return HTTP_HEAD_ERROR;
             }
             break;
         }   
     }
 
-    r->pos = p;
-    r->state = state;
+    req->pos = p;
+    req->state = state;
 
-    return ZV_AGAIN;
+    return DLY_EAGAIN;
 
 done:
-    r->pos = p + 1;
+    req->pos = p + 1;
 
-    r->state = sw_start;
+    req->state = st_head_start;
 
-    return ZV_OK;
+    return DLY_OK;
 }

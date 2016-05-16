@@ -2,11 +2,13 @@
 #define __HTTP_BASE_H__
 
 #include "util.h"
+#include "list.h"
 
 #define HTTP_REQUEST_ERROR  -10
 #define HTTP_METHOD_ERROR   -11
 #define HTTP_PROTOCOL_ERROR -12
 #define HTTP_PATH_ERROR     -13
+#define HTTP_HEAD_ERROR     -14
 
 #define GET     10
 #define POST    11
@@ -17,7 +19,9 @@
 #define CONNECT 16
 #define OPTIONS 17
 
-#define MAX_BUF 8124
+#define MAX_BUF     10240
+#define MAXLINE     8192
+#define SHORTLINE   512
 
 typedef struct http_request_s {
     char *root;                  // 不包含'/'
@@ -48,6 +52,7 @@ typedef struct http_request_s {
     char *cur_header_value_end;
 
     char *body_start;
+    int body_length;
 
 } http_request_t;
 

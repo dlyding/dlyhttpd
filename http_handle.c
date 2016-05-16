@@ -1,7 +1,5 @@
 #include "http_handle.h"
 
-static const char* get_file_type(const char *type);
-
 mime_type_t http_mime[] = 
 {
     {".html", "text/html"},
@@ -23,6 +21,19 @@ mime_type_t http_mime[] =
     {".tar", "application/x-tar"},
     {".css", "text/css"},
     {NULL ,"text/plain"}
+};
+
+static int http_process_ignore(http_request_t *req, http_response_t *res, char *data, int len);
+static int http_process_connection(http_request_t *req, http_response_t *res, char *data, int len);
+static int http_process_if_modified_since(http_request_t *req, http_response_t *res, char *data, int len);
+static int http_process_content_length(http_request_t *req, http_response_t *res, char *data, int len);
+
+http_header_handle_t http_headers_in[] = {
+    {"Host", http_process_ignore},
+    {"Connection", http_process_connection},
+    {"If-Modified-Since", http_process_if_modified_since},
+    {"Content-Length", http_process_content_length},
+    {"", http_process_ignore}
 };
 
 int set_method_for_request(http_request_t *req)
@@ -178,4 +189,65 @@ int get_information_from_url(const http_request_t *req, char *filename, char *qu
 		strncpy(querystring, query_start, query_end - query_start + 1);
 		return DLY_OK;
 	}
+}
+
+void http_handle_header(http_request_t *req, http_response_t *res) {
+    list_head *pos;
+    http_header_t *hd;
+    http_header_handle_t *header_in;
+
+    list_for_each(pos, &(req->list)) {
+        hd = list_entry(pos, http_header_t, list);
+        /* handle */
+
+        for (header_in = http_headers_in; strlen(header_in->name) > 0; header_in++) {
+            if (strncmp(hd->key_start, header_in->name, hd->key_end - hd->key_start) == 0) {         
+                debug("key = %.*s, value = %.*s", hd->key_end-hd->key_start, hd->key_start, hd->value_end-hd->value_start, hd->value_start);
+                int len = hd->value_end - hd->value_start;
+                (*(header_in->handler))(req, res, hd->value_start, len);
+                break;
+            }    
+        }
+
+        /* delete it from the original list */
+        list_del(pos);
+        free(hd);
+    }
+}
+
+static int http_process_ignore(http_request_t *req, http_reponse_t *res, char *data, int len) {
+    
+    return DLY_OK;
+}
+
+static int http_process_connection(http_request_t *req, http_response_t *res, char *data, int len) {
+    if (strncasecmp("keep-alive", data, len) == 0) {
+        res->keep_alive = 1;
+    }
+
+    return DLY_OK;
+}
+
+static int http_process_if_modified_since(http_request_t *req, http_response_t *res, char *data, int len) {
+    struct tm tm;
+    strptime(data, "%a, %d %b %Y %H:%M:%S GMT", &tm);
+    time_t client_time = mktime(&tm);
+
+    double time_diff = difftime(out->mtime, client_time);
+    if (fabs(time_diff) < 1e6) {
+        debug("not modified!!");
+        /* Not modified */
+        res->modified = 0;
+        res->status = HTTP_NOT_MODIFIED;  //  TODO
+    }
+    
+    return DLY_OK;
+}
+
+static int http_process_content_length(http_request_t *req, http_response_t *res, char *data, int len)
+{
+	char *temp = (char *)malloc(len + 1);
+	strncpy(temp, data, len);
+	req->body_length = atoi(temp);
+	return DLY_OK;
 }
