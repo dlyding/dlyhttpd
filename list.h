@@ -35,10 +35,10 @@ static inline void list_add(struct list_head *_new, struct list_head *head) {
     __list_add(_new, head, head->next);
 }
 
-static inline void list_add_tail(struct list_head *_new, struct list_head *head) {
+/*static inline void list_add_tail(struct list_head *_new, struct list_head *head) {
     __list_add(_new, head, head->next);
 }
-
+*/
 /*
 * Delete a entry to two consecutive entries.
 */
