@@ -65,6 +65,12 @@ typedef struct http_response_s{
     int status;
 } http_response_t;
 
+typedef struct http_header_s {
+    char *key_start, *key_end;          /* not include end */
+    char *value_start, *value_end;
+    list_head list;
+} http_header_t;
+
 int init_request_t(http_request_t *req, int fd, conf_t *cf);
 int free_request_t(http_request_t *req);
 

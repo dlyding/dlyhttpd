@@ -23,18 +23,18 @@ mime_type_t http_mime[] =
     {NULL ,"text/plain"}
 };
 
+http_header_handle_t http_headers_in[] = {
+    {"Host", http_process_ignore},
+    {"Connection", http_process_ignore},
+    {"If-Modified-Since", http_process_ignore},
+    {"Content-Length", http_process_content_length},
+    {"", http_process_ignore}
+};
+
 static int http_process_ignore(http_request_t *req, http_response_t *res, char *data, int len);
 static int http_process_connection(http_request_t *req, http_response_t *res, char *data, int len);
 static int http_process_if_modified_since(http_request_t *req, http_response_t *res, char *data, int len);
 static int http_process_content_length(http_request_t *req, http_response_t *res, char *data, int len);
-
-http_header_handle_t http_headers_in[] = {
-    {"Host", http_process_ignore},
-    {"Connection", http_process_connection},
-    {"If-Modified-Since", http_process_if_modified_since},
-    {"Content-Length", http_process_content_length},
-    {"", http_process_ignore}
-};
 
 int set_method_for_request(http_request_t *req)
 {

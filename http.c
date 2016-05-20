@@ -132,51 +132,6 @@ close:
     close(fd);
 }
 
-/*void dorequest_line(struct schedule *s, http_request_t *req, char *filename, char *querystring)
-{   
-    int rc, n;
-    for(;;) {
-        n = read(req->fd, req->last, (uint64_t)req->buf + MAX_BUF - (uint64_t)req->last);
-        if (n == 0) {   // EOF
-            log_info("read return 0, ready to close fd %d", fd);
-            goto err; // TODO
-        }
-
-        if (n < 0) {
-            if (errno != EAGAIN) {
-                log_err("read err, and errno = %d", errno);
-                goto err; // TODO
-            }
-            coroutine_yield(s);
-            continue;
-        }
-        req->last += n;
-        check(req->last <= req->buf + MAX_BUF, "req->last <= MAX_BUF");
-        
-        log_info("ready to parse request line"); 
-        rc = http_parse_request_line(req);
-        if (rc == DLY_EAGAIN) {
-            continue;
-        }
-        else if (rc != DLY_OK) {
-            log_err("rc != DLY_OK");
-            goto err;    // TODO
-        }
-
-        rc = set_method_for_request(req);
-        rc = set_protocol_for_request(req);
-        rc = set_url_for_request(req);
-
-        // apply space for filename
-        // apply space for querystring
-
-        rc = get_information_from_url(req, filename, querystring);        
-
-        log_info("method == %.*s",req->method_end - req->request_start, req->request_start);
-        log_info("uri == %.*s", req->uri_end - req->uri_start, req->uri_start);
-    }
-}*/
-
 void do_error(int fd, char *cause, char *errnum, char *shortmsg, char *longmsg)
 {
     char header[MAXLINE], body[MAXLINE];
@@ -222,8 +177,9 @@ void serve_static(int fd, char *filename, size_t filesize, http_response_t *res)
         localtime_r(&(res->mtime), &tm);
         strftime(buf, SHORTLINE,  "%a, %d %b %Y %H:%M:%S GMT", &tm);
         sprintf(header, "%sLast-Modified: %s\r\n", header, buf);
-    } else {
-
+    } 
+    else {
+        // TODO
     }
 
     sprintf(header, "%sServer: Zaver\r\n", header);

@@ -2,12 +2,18 @@
 #define __HTTP_HANDLE_H__
 
 #include "http_base.h"
-#include <string.h>
 
 typedef struct mime_type_s {
 	const char *type;
 	const char *value;
 } mime_type_t;
+
+typedef int (*http_header_handler_pt)(http_request_t *req, http_response_t *res, char *data, int len);
+
+typedef struct http_header_handle_s{
+    char *name;
+    http_header_handler_pt handler;
+} http_header_handle_t;
 
 int set_method_for_request(http_request_t *req);
 int set_protocol_for_request(http_request_t *req);

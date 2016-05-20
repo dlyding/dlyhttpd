@@ -10,8 +10,13 @@
 #include <strings.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <stdint.h>
+#include <getopt.h>
+#include <signal.h>
+#include <string.h>
 
 #include "dbg.h"
+#include "rio.h"
 #include "coroutine.h"
 
 #define DLY_OK            0

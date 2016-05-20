@@ -4,24 +4,26 @@
 #define CONF "dlyhttpd.conf"
 #define PROGRAM_VERSION "0.1"
 
-extern struct epoll_event *events;
-
 static const struct option long_options[]=
 {
     {"help",no_argument,NULL,'?'},
-    {"version",no_argument,NULL,'V'},
+    {"version",no_argument,NULL,'v'},
     {"conf",required_argument,NULL,'c'},
     {NULL,0,NULL,0}
 };
 
 static void usage() {
    fprintf(stderr,
-	"zaver [option]... \n"
+	"dlyhttpd [option]... \n"
 	"  -c|--conf <config file>  Specify config file. Default ./dlyhttpd.conf.\n"
 	"  -?|-h|--help             This information.\n"
-	"  -V|--version             Display program version.\n"
+	"  -v|--version             Display program version.\n"
 	);
 }
+
+void acceptfun(struct schedule *s, void *ud);
+void dorequest(struct schedule *s, void *ud);
+void workerloop(int listenfd);
 
 int main(int argc, char* argv[])
 {
@@ -35,13 +37,13 @@ int main(int argc, char* argv[])
         return 0;
     }
 
-    while ((opt = getopt_long(argc, argv, "Vc:?h", long_options, &options_index)) != EOF) {
+    while ((opt = getopt_long(argc, argv, "vc:?h", long_options, &options_index)) != EOF) {
         switch (opt) {
             case  0 : break;
             case 'c':
                 conf_file = optarg;
                 break;
-            case 'V':
+            case 'v':
                 printf(PROGRAM_VERSION"\n");
                 return 0;
             case ':':
@@ -64,6 +66,18 @@ int main(int argc, char* argv[])
     conf_t cf;
     rc = read_conf(conf_file, &cf);
     check(rc == DLY_OK, "read conf err");
+    log_info("root:%s", cf.root);
+    log_info("port:%d", cf.port);
+    log_info("worker_num:%d", cf.worker_num);
+
+    struct sigaction sa;
+    memset(&sa, '\0', sizeof(sa));
+    sa.sa_handler = SIG_IGN;
+    sa.sa_flags = 0;
+    if (sigaction(SIGPIPE,&sa,NULL)) {
+        log_err("install sigal handler for SIGPIPI failed");
+        return 0;
+    }
 
     int listenfd;
     
@@ -81,8 +95,11 @@ int main(int argc, char* argv[])
     }
     for(i = 0; i < cf.worker_num; i++) {
         pid[i] = fork();
-        if(0 == pid[i] || -1 == pid[i]) 
+        if(0 == pid[i]) 
             break;
+        if(-1 == pid[i]) {
+            return 0;
+        }
     }
     for(i = 0; i < cf.worker_num; i++) {
     	if(0 == pid[i]) {
@@ -101,7 +118,7 @@ void workerloop(int listenfd)
 {
     int i;
     struct schedule * S = coroutine_open();
-    printf("start..\n");
+    printf("worker start\n");
     int co1 = coroutine_new(S, acceptfun, (void *)&listenfd);
     printf("%d\n", S->cap);
     printf("%d\n", co1);
