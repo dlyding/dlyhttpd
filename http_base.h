@@ -9,6 +9,8 @@
 #define HTTP_PROTOCOL_ERROR -12
 #define HTTP_PATH_ERROR     -13
 #define HTTP_HEAD_ERROR     -14
+#define HTTP_NOT_MODIFIED   -15
+#define HTTP_NOT_FOUND      -16
 
 #define GET     10
 #define POST    11

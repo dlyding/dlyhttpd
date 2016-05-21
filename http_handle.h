@@ -21,5 +21,6 @@ int set_url_for_request(http_request_t *req);
 const char* get_file_type(const char *type);
 int get_information_from_url(const http_request_t *req, char *filename, char *querystring);
 void http_handle_header(http_request_t *req, http_response_t *res);
+const char *get_shortmsg_from_status_code(int status_code);
 
 #endif

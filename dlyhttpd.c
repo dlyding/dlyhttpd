@@ -1,5 +1,5 @@
 #include "util.h"
-#include "http_base.h"
+#include "http.h"
 
 #define CONF "dlyhttpd.conf"
 #define PROGRAM_VERSION "0.1"
@@ -20,6 +20,8 @@ static void usage() {
 	"  -v|--version             Display program version.\n"
 	);
 }
+
+conf_t cf;
 
 void acceptfun(struct schedule *s, void *ud);
 void dorequest(struct schedule *s, void *ud);
@@ -63,7 +65,6 @@ int main(int argc, char* argv[])
         return 0;
     }
 
-    conf_t cf;
     rc = read_conf(conf_file, &cf);
     check(rc == DLY_OK, "read conf err");
     log_info("root:%s", cf.root);
@@ -136,17 +137,17 @@ void workerloop(int listenfd)
 void acceptfun(struct schedule *s, void *ud)
 {
     int *lfd = (int *)ud;
-    int *pcfd;
+    int pcfd;
     struct sockaddr_in clientaddr; 
     memset(&clientaddr, 0, sizeof(struct sockaddr_in)); 
     socklen_t len = sizeof(clientaddr);
     while(1){
         //printf("start accept..\n");
-        pcfd = (int *)malloc(sizeof(int));
-        *pcfd = accept(*lfd, (struct sockaddr *)&clientaddr, &len);
+        //pcfd = (int *)malloc(sizeof(int));
+        pcfd = accept(*lfd, (struct sockaddr *)&clientaddr, &len);
         //printf("%d\n", *pcfd);
-        if(*pcfd == -1){
-            free(pcfd);
+        if(pcfd == -1){
+            //free(pcfd);
             if ((errno == EAGAIN) || (errno == EWOULDBLOCK)) {
                 coroutine_yield(s);
             }
@@ -155,14 +156,16 @@ void acceptfun(struct schedule *s, void *ud)
             }
         }
         else {
-            printf("%d\n", getpid());
-            make_socket_non_blocking(*pcfd);
-            int co = coroutine_new(s, dorequest, (void *)pcfd);
+            //printf("%d\n", getpid());
+            make_socket_non_blocking(pcfd);
+            http_request_t *request = (http_request_t *)malloc(sizeof(http_request_t));
+            init_request_t(request, pcfd, &cf);
+            int co = coroutine_new(s, dorequest, (void *)request);
         }
     }
 }
 
-void dorequest(struct schedule *s, void *ud)
+/*void dorequest(struct schedule *s, void *ud)
 {
     int *pfd = (int *)ud;
     char in[1024];
@@ -191,4 +194,4 @@ void dorequest(struct schedule *s, void *ud)
     close(*pfd);
     free(pfd);
     return; 
-}
+}*/

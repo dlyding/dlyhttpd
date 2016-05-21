@@ -23,6 +23,11 @@ mime_type_t http_mime[] =
     {NULL ,"text/plain"}
 };
 
+static int http_process_ignore(http_request_t *req, http_response_t *res, char *data, int len);
+static int http_process_connection(http_request_t *req, http_response_t *res, char *data, int len);
+static int http_process_if_modified_since(http_request_t *req, http_response_t *res, char *data, int len);
+static int http_process_content_length(http_request_t *req, http_response_t *res, char *data, int len);
+
 http_header_handle_t http_headers_in[] = {
     {"Host", http_process_ignore},
     {"Connection", http_process_ignore},
@@ -30,11 +35,6 @@ http_header_handle_t http_headers_in[] = {
     {"Content-Length", http_process_content_length},
     {"", http_process_ignore}
 };
-
-static int http_process_ignore(http_request_t *req, http_response_t *res, char *data, int len);
-static int http_process_connection(http_request_t *req, http_response_t *res, char *data, int len);
-static int http_process_if_modified_since(http_request_t *req, http_response_t *res, char *data, int len);
-static int http_process_content_length(http_request_t *req, http_response_t *res, char *data, int len);
 
 int set_method_for_request(http_request_t *req)
 {
@@ -186,7 +186,7 @@ int get_information_from_url(const http_request_t *req, char *filename, char *qu
 		return DLY_OK;
 	}
 	else {
-		strncpy(querystring, query_start, query_end - query_start + 1);
+		strncpy(querystring, req->query_start, req->query_end - req->query_start + 1);
 		return DLY_OK;
 	}
 }
@@ -202,7 +202,7 @@ void http_handle_header(http_request_t *req, http_response_t *res) {
 
         for (header_in = http_headers_in; strlen(header_in->name) > 0; header_in++) {
             if (strncmp(hd->key_start, header_in->name, hd->key_end - hd->key_start) == 0) {         
-                debug("key = %.*s, value = %.*s", hd->key_end-hd->key_start, hd->key_start, hd->value_end-hd->value_start, hd->value_start);
+                //debug("key = %.*s, value = %.*s", hd->key_end - hd->key_start, hd->key_start, hd->value_end - hd->value_start, hd->value_start);
                 int len = hd->value_end - hd->value_start;
                 (*(header_in->handler))(req, res, hd->value_start, len);
                 break;
@@ -215,7 +215,7 @@ void http_handle_header(http_request_t *req, http_response_t *res) {
     }
 }
 
-static int http_process_ignore(http_request_t *req, http_reponse_t *res, char *data, int len) {
+static int http_process_ignore(http_request_t *req, http_response_t *res, char *data, int len) {
     
     return DLY_OK;
 }
@@ -233,7 +233,7 @@ static int http_process_if_modified_since(http_request_t *req, http_response_t *
     strptime(data, "%a, %d %b %Y %H:%M:%S GMT", &tm);
     time_t client_time = mktime(&tm);
 
-    double time_diff = difftime(out->mtime, client_time);
+    double time_diff = difftime(res->mtime, client_time);
     if (fabs(time_diff) < 1e6) {
         debug("not modified!!");
         /* Not modified */
@@ -250,4 +250,24 @@ static int http_process_content_length(http_request_t *req, http_response_t *res
 	strncpy(temp, data, len);
 	req->body_length = atoi(temp);
 	return DLY_OK;
+}
+
+const char *get_shortmsg_from_status_code(int status_code) {
+    /*  for code to msg mapping, please check: 
+    * http://users.polytech.unice.fr/~buffa/cours/internet/POLYS/servlets/Servlet-Tutorial-Response-Status-Line.html
+    */
+    if (status_code = DLY_OK) {
+        return "OK";
+    }
+
+    if (status_code = HTTP_NOT_MODIFIED) {
+        return "Not Modified";
+    }
+
+    if (status_code = HTTP_NOT_FOUND) {
+        return "Not Found";
+    }
+    
+
+    return "Unknown";
 }

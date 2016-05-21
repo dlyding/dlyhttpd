@@ -24,13 +24,13 @@ void dorequest(struct schedule *s, void *ud)
 
         if (n == 0) {   // EOF
             log_info("read return 0, ready to close fd %d", fd);
-            goto err2;
+            goto close;
         }
 
         if (n < 0) {
             if (errno != EAGAIN) {
                 log_err("read err, and errno = %d", errno);
-                goto err2;
+                goto close;
             }
             coroutine_yield(s);
             continue;
@@ -46,7 +46,7 @@ void dorequest(struct schedule *s, void *ud)
         }
         else if (rc != DLY_OK) {
             log_err("rc != DLY_OK");
-            goto err2;
+            goto close;
         }
 
         log_info("ready to parse request header");
@@ -56,7 +56,7 @@ void dorequest(struct schedule *s, void *ud)
         }
         else if (rc != DLY_OK) {
             log_err("rc != DLY_OK");
-            goto err2;
+            goto close;
         }
 
         rc = set_method_for_request(req);
@@ -68,15 +68,15 @@ void dorequest(struct schedule *s, void *ud)
 
         rc = get_information_from_url(req, filename, querystring);        
 
-        log_info("method == %.*s",req->method_end - req->request_start, req->request_start);
-        log_info("uri == %.*s", req->uri_end - req->uri_start, req->uri_start);     
+        //log_info("method == %.*s",req->method_end - req->request_start, req->request_start);
+        //log_info("uri == %.*s", req->url_end - req->url_start, req->url_start);     
         /*
         *   handle http header
         */
         http_response_t *res = (http_response_t *)malloc(sizeof(http_response_t));
         if (res == NULL) {
             log_err("no enough space for zv_http_out_t");
-            goto err2;
+            goto close;
         }
 
         rc = init_response_t(res, fd);
@@ -84,13 +84,15 @@ void dorequest(struct schedule *s, void *ud)
 
         if(stat(filename, &sbuf) < 0) {
             do_error(fd, filename, "404", "Not Found", "dlyhttpd can't find the file");
-            goto err1;
+            free(res);
+            goto close;
         }
 
         if (!(S_ISREG(sbuf.st_mode)) || !(S_IRUSR & sbuf.st_mode))
         {
             do_error(fd, filename, "403", "Forbidden", "dlyhttpd can't read the file");
-            goto err1;
+            free(res);
+            goto close;
         }
         
         res->mtime = sbuf.st_mtime;
@@ -99,7 +101,7 @@ void dorequest(struct schedule *s, void *ud)
         check(list_empty(&(req->list)) == 1, "header list should be empty");
         
         if (res->status == 0) {
-            res->status = ZV_HTTP_OK;
+            res->status = DLY_OK;
         }
         char *filetype = rindex(filename, '.');
         if(strcmp(".php", filetype) == 0) {
@@ -116,17 +118,14 @@ void dorequest(struct schedule *s, void *ud)
         }
         else{
             // 释放空间
-            free(res);
-            init_request_t(req);
+            //free(res);
+            //init_request_t(req);
         }
 
     }
     
     return;
 
-err1:
-    free(res);
-err2:
 close:
     free(req);
     close(fd);

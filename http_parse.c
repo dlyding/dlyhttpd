@@ -1,7 +1,7 @@
 #include "http_parse.h"
 
 int http_parse_request_line(http_request_t *req) {
-    u_char ch, *p;
+    char ch, *p;
     enum {
         st_line_start = 0,
         st_method,
@@ -87,7 +87,7 @@ int http_parse_request_line(http_request_t *req) {
             break;
 
         case st_CR_end:
-            r->request_end = p - 1;
+            req->request_end = p - 1;
             switch (ch) {
             case LF:
                 goto done;
@@ -110,7 +110,7 @@ done:
     req->pos = p + 1;
 
     if (req->request_end == NULL) {
-        r->request_end = p;
+        req->request_end = p;
     }
 
     req->state = 6;
@@ -119,7 +119,7 @@ done:
 }
 
 int http_parse_request_header(http_request_t *req) {
-    u_char c, ch, *p, *m;
+    char c, ch, *p, *m;
     enum {
         st_head_start = 6,
         st_key,
@@ -211,7 +211,7 @@ int http_parse_request_header(http_request_t *req) {
 
         case st_crlf:
             if (ch == CR) {
-                state = sw_crlfcr;
+                state = st_crlfcr;
             } else {
                 req->cur_header_key_start = p;
                 state = st_key;

@@ -3,6 +3,8 @@
 
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <sys/stat.h>
+#include <sys/mman.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <fcntl.h>
@@ -14,6 +16,8 @@
 #include <getopt.h>
 #include <signal.h>
 #include <string.h>
+#include <time.h>
+#include <math.h>
 
 #include "dbg.h"
 #include "rio.h"

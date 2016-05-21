@@ -2,7 +2,7 @@
 
 int init_request_t(http_request_t *req, int fd, conf_t *cf) {
     req->fd = fd;
-    req->pos = r->last = req->buf;
+    req->pos = req->last = req->buf;
     req->state = 0;
     req->root = cf->root;
     memset(req->buf, 0, sizeof(req->buf));
