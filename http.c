@@ -20,7 +20,7 @@ void dorequest(struct schedule *s, void *ud)
     for(;;) {
         n = read(fd, req->last, (uint64_t)req->buf + MAX_BUF - (uint64_t)req->last);
         check((uint64_t)req->buf + MAX_BUF > (uint64_t)req->last, "(uint64_t)req->buf + MAX_BUF");
-        //log_info("has read %d, buffer remaining: %d, buffer rece:%s", n, (uint64_t)r->buf + MAX_BUF - (uint64_t)r->last, r->buf);
+        log_info("has read %d, buffer remaining: %ld, buffer rece:%s", n, (uint64_t)req->buf + MAX_BUF - (uint64_t)req->last, req->buf);
 
         if (n == 0) {   // EOF
             log_info("read return 0, ready to close fd %d", fd);
@@ -58,18 +58,19 @@ void dorequest(struct schedule *s, void *ud)
             log_err("rc != DLY_OK");
             goto close;
         }
-
+        
         rc = set_method_for_request(req);
-        rc = set_protocol_for_request(req);
-        rc = set_url_for_request(req);
+        log_info("method = %d", req->method);
 
+        rc = set_protocol_for_request(req);
+        log_info("HTTP version = %d.%d", req->http_major, req->http_minor);
+
+        rc = set_url_for_request(req);
+        log_info("uri = %.*s", req->url_end - req->url_start, req->url_start);
         // apply space for filename
         // apply space for querystring
-
-        rc = get_information_from_url(req, filename, querystring);        
-
-        //log_info("method == %.*s",req->method_end - req->request_start, req->request_start);
-        //log_info("uri == %.*s", req->url_end - req->url_start, req->url_start);     
+        rc = get_information_from_url(req, filename, querystring);
+        log_info("filename = %s, querystring = %s", filename, querystring);        
         /*
         *   handle http header
         */

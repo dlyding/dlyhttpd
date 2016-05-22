@@ -141,7 +141,7 @@ int set_url_for_request(http_request_t *req)
 		p++;
 	}
 	req->path_start = p;
-	while(*p != '?' && p <= req->url_end) {
+	while(*p != '?' && p < req->url_end) {
 		p++;
 	}
 	req->path_end = p - 1;
@@ -184,6 +184,9 @@ int get_information_from_url(const http_request_t *req, char *filename, char *qu
 	}
 	if(querystring == NULL) {
 		return DLY_OK;
+	}
+	if(req->query_end <= req->query_start) {
+		strcpy(querystring, "");
 	}
 	else {
 		strncpy(querystring, req->query_start, req->query_end - req->query_start + 1);
