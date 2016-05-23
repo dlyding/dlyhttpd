@@ -30,7 +30,7 @@ int init_response_t(http_response_t *res, int fd) {
     res->fd = fd;
     res->keep_alive = 0;
     res->modified = 1;
-    res->status = 0;
+    res->status = HTTP_OK;
 
     return DLY_OK;
 }

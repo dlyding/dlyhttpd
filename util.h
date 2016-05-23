@@ -26,7 +26,7 @@
 #define DLY_OK            0
 #define DLY_NULL_POINTER -1
 #define DLY_EAGAIN       -2
-#define DLY_CONF_ERROR   100
+#define DLY_CONF_ERROR   -3
 
 #define LISTENQ     1024
 
@@ -37,6 +37,9 @@
 #define CR       '\r'
 #define LF       '\n'
 #define CRLFCRLF "\r\n\r\n"
+
+#define CONF "dlyhttpd.conf"
+#define PROGRAM_VERSION "0.1"
 
 typedef struct conf_s {
     char root[ROOTLEN];

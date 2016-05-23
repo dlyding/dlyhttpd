@@ -4,14 +4,20 @@
 #include "util.h"
 #include "list.h"
 
+// HTTP协议分析错误码
 #define HTTP_REQUEST_ERROR  -10
 #define HTTP_METHOD_ERROR   -11
 #define HTTP_PROTOCOL_ERROR -12
 #define HTTP_PATH_ERROR     -13
 #define HTTP_HEAD_ERROR     -14
-#define HTTP_NOT_MODIFIED   -15
-#define HTTP_NOT_FOUND      -16
 
+// HTTP状态码
+#define HTTP_OK             200
+#define HTTP_NOT_MODIFIED   304
+#define HTTP_FORBIDDEN      403
+#define HTTP_NOT_FOUND      404
+
+// HTTP请求方法
 #define GET     10
 #define POST    11
 #define HEAD    12

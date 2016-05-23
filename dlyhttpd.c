@@ -1,9 +1,6 @@
 #include "util.h"
 #include "http.h"
 
-#define CONF "dlyhttpd.conf"
-#define PROGRAM_VERSION "0.1"
-
 static const struct option long_options[]=
 {
     {"help",no_argument,NULL,'?'},
@@ -164,34 +161,3 @@ void acceptfun(struct schedule *s, void *ud)
         }
     }
 }
-
-/*void dorequest(struct schedule *s, void *ud)
-{
-    int *pfd = (int *)ud;
-    char in[1024];
-    char *out = "hello\n";
-    while(1) {
-        int n = read(*pfd, in, 1023);
-        if(n == 0) {
-            close(*pfd);
-            free(pfd);
-            return;
-        }
-        else if(n < 0) {
-            if ((errno == EAGAIN) || (errno == EWOULDBLOCK)) {
-                coroutine_yield(s);
-            }
-            else
-                break;
-        }
-        else {
-            printf("receive: %s", in);
-            write(*pfd, out, 6);
-            usleep(10000);
-            break;
-        }
-    }
-    close(*pfd);
-    free(pfd);
-    return; 
-}*/

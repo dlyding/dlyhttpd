@@ -8,6 +8,7 @@ static void serve_static(int fd, char *filename, size_t filesize, http_response_
 void dorequest(struct schedule *s, void *ud)
 {
 	http_request_t *req = (http_request_t *)ud;
+    conf_t cf;
     int fd = req->fd;
     int rc;
     char filename[SHORTLINE];
@@ -88,6 +89,7 @@ void dorequest(struct schedule *s, void *ud)
         check(rc == DLY_OK, "init_response_t error, %d", rc);
 
         if(stat(filename, &sbuf) < 0) {
+            res->status = HTTP_NOT_FOUND;
             do_error(fd, filename, "404", "Not Found", "dlyhttpd can't find the file");
             free(res);
             goto close;
@@ -95,6 +97,7 @@ void dorequest(struct schedule *s, void *ud)
 
         if (!(S_ISREG(sbuf.st_mode)) || !(S_IRUSR & sbuf.st_mode))
         {
+            res->status = HTTP_FORBIDDEN;
             do_error(fd, filename, "403", "Forbidden", "dlyhttpd can't read the file");
             free(res);
             goto close;
@@ -105,9 +108,6 @@ void dorequest(struct schedule *s, void *ud)
         http_handle_header(req, res);
         check(list_empty(&(req->list)) == 1, "header list should be empty");
         
-        if (res->status == 0) {
-            res->status = DLY_OK;
-        }
         char *filetype = rindex(filename, '.');
         if(strcmp(".php", filetype) == 0) {
             // TODO
@@ -123,8 +123,9 @@ void dorequest(struct schedule *s, void *ud)
         }
         else{
             // 释放空间
-            //free(res);
-            //init_request_t(req);
+            free(res);
+            read_conf(CONF, &cf);
+            init_request_t(req, fd, &cf);
         }
 
     }

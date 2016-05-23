@@ -8,7 +8,7 @@ typedef struct mime_type_s {
 	const char *value;
 } mime_type_t;
 
-typedef int (*http_header_handler_pt)(http_request_t *req, http_response_t *res, char *data, int len);
+typedef void (*http_header_handler_pt)(http_request_t *req, http_response_t *res, char *data, int len);
 
 typedef struct http_header_handle_s{
     char *name;
