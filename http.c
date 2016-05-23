@@ -18,9 +18,8 @@ void dorequest(struct schedule *s, void *ud)
     debug("root=%s", root);
     
     for(;;) {
-        n = read(fd, req->last, (uint64_t)req->buf + MAX_BUF - (uint64_t)req->last);
-        check((uint64_t)req->buf + MAX_BUF > (uint64_t)req->last, "(uint64_t)req->buf + MAX_BUF");
-        log_info("has read %d, buffer remaining: %ld, buffer rece:%s", n, (uint64_t)req->buf + MAX_BUF - (uint64_t)req->last, req->buf);
+        n = read(fd, req->last, req->buf + MAX_BUF - req->last);
+        check(req->buf + MAX_BUF > req->last, "req->buf + MAX_BUF");
 
         if (n == 0) {   // EOF
             log_info("read return 0, ready to close fd %d", fd);
@@ -38,6 +37,7 @@ void dorequest(struct schedule *s, void *ud)
 
         req->last += n;
         check(req->last <= req->buf + MAX_BUF, "req->last <= MAX_BUF");
+        log_info("has read %d, buffer remaining: %ld, buffer rece:%s", n, req->buf + MAX_BUF - req->last, req->buf);
         
         log_info("ready to parse request line"); 
         rc = http_parse_request_line(req);
@@ -60,16 +60,20 @@ void dorequest(struct schedule *s, void *ud)
         }
         
         rc = set_method_for_request(req);
+        check(rc == DLY_OK, "set_method_for_request error, %d", rc);
         log_info("method = %d", req->method);
 
         rc = set_protocol_for_request(req);
+        check(rc == DLY_OK, "set_protocol_for_request error, %d", rc);
         log_info("HTTP version = %d.%d", req->http_major, req->http_minor);
 
         rc = set_url_for_request(req);
+        check(rc == DLY_OK, "set_url_for_request error, %d", rc);
         log_info("uri = %.*s", req->url_end - req->url_start, req->url_start);
         // apply space for filename
         // apply space for querystring
         rc = get_information_from_url(req, filename, querystring);
+        check(rc == DLY_OK, "get_information_from_url error, %d", rc);
         log_info("filename = %s, querystring = %s", filename, querystring);        
         /*
         *   handle http header
@@ -81,7 +85,7 @@ void dorequest(struct schedule *s, void *ud)
         }
 
         rc = init_response_t(res, fd);
-        check(rc == DLY_OK, "init_response_t");
+        check(rc == DLY_OK, "init_response_t error, %d", rc);
 
         if(stat(filename, &sbuf) < 0) {
             do_error(fd, filename, "404", "Not Found", "dlyhttpd can't find the file");
@@ -182,7 +186,7 @@ void serve_static(int fd, char *filename, size_t filesize, http_response_t *res)
         // TODO
     }
 
-    sprintf(header, "%sServer: Zaver\r\n", header);
+    sprintf(header, "%sServer: dlyhttpd\r\n", header);
     sprintf(header, "%s\r\n", header);
 
     n = rio_writen(fd, header, strlen(header));

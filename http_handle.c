@@ -99,7 +99,7 @@ int set_protocol_for_request(http_request_t *req)
 	char pro[10], *p;
 	int i = 0, major = 0, minor = 0;
 	p = req->protocol_start;
-	while(*p != '/' && p <= req->protocol_end) {
+	while(*p != '/' && p < req->protocol_end) {
 		if(*p == ' ') {
 			p++;
 			continue;
@@ -113,15 +113,23 @@ int set_protocol_for_request(http_request_t *req)
 	if(strcmp(pro, "HTTP") != 0) {
 		return HTTP_PROTOCOL_ERROR;
 	}
-	while(*p != '.' && p <= req->protocol_end) {
+	while(*p != '.' && p < req->protocol_end) {
+		if(*p == ' ') {
+			p++;
+			continue;
+		}
 		if(*p < '0' || *p > '9') {
 			return HTTP_PROTOCOL_ERROR;
 		}
-		major = (*p - '0') + major * 10;
+		major = (*p - '0') + major * 10;		
 		p++;
 	}
 	p++;
-	while(p <= req->protocol_end) {
+	while(p < req->protocol_end) {
+		if(*p == ' ') {
+			p++;
+			continue;
+		}
 		if(*p < '0' || *p > '9') {
 			return HTTP_PROTOCOL_ERROR;
 		}
@@ -187,6 +195,7 @@ int get_information_from_url(const http_request_t *req, char *filename, char *qu
 	}
 	if(req->query_end <= req->query_start) {
 		strcpy(querystring, "");
+		return DLY_OK;
 	}
 	else {
 		strncpy(querystring, req->query_start, req->query_end - req->query_start + 1);
@@ -201,11 +210,11 @@ void http_handle_header(http_request_t *req, http_response_t *res) {
 
     list_for_each(pos, &(req->list)) {
         hd = list_entry(pos, http_header_t, list);
+        debug("key = %.*s, value = %.*s", hd->key_end - hd->key_start, hd->key_start, hd->value_end - hd->value_start, hd->value_start);
         /* handle */
 
         for (header_in = http_headers_in; strlen(header_in->name) > 0; header_in++) {
             if (strncmp(hd->key_start, header_in->name, hd->key_end - hd->key_start) == 0) {         
-                //debug("key = %.*s, value = %.*s", hd->key_end - hd->key_start, hd->key_start, hd->value_end - hd->value_start, hd->value_start);
                 int len = hd->value_end - hd->value_start;
                 (*(header_in->handler))(req, res, hd->value_start, len);
                 break;
