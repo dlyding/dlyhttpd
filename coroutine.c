@@ -1,18 +1,5 @@
 #include "coroutine.h"
 
-struct coroutine;
-
-struct coroutine {
-	coroutine_func func;
-	void *ud;
-	ucontext_t ctx;
-	struct schedule *sch;
-	ptrdiff_t cap;
-	ptrdiff_t size;
-	int status;
-	char *stack;
-};
-
 struct coroutine * 
 _co_new(struct schedule *S , coroutine_func func, void *ud) {
 	struct coroutine * co = malloc(sizeof(*co));

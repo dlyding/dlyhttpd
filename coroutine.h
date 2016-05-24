@@ -28,6 +28,17 @@ struct schedule {
 
 typedef void (*coroutine_func)(struct schedule *, void *ud);
 
+struct coroutine {
+	coroutine_func func;
+	void *ud;
+	ucontext_t ctx;
+	struct schedule *sch;
+	ptrdiff_t cap;
+	ptrdiff_t size;
+	int status;
+	char *stack;
+};
+
 struct schedule * coroutine_open(void);
 void coroutine_close(struct schedule *);
 
