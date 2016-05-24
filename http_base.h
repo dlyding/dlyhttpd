@@ -62,6 +62,9 @@ typedef struct http_request_s {
     char *body_start;
     int body_length;
 
+    int istimeout;      // 判断是否超时
+    time_t mtime;       // 保存请求时的时间，用于超时
+
 } http_request_t;
 
 typedef struct http_response_s{

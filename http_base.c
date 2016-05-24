@@ -17,6 +17,8 @@ int init_request_t(http_request_t *req, int fd, conf_t *cf) {
     req->cur_header_value_start = req->cur_header_value_end = NULL;
 
     req->body_start = NULL;
+    req->mtime = time(NULL);
+    req->istimeout = 0;
 
     return DLY_OK;
 }

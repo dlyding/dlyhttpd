@@ -22,13 +22,27 @@ int read_conf(char *filename, conf_t *cf) {
             strcpy(cf->root, delim_pos + 1);
         }
 
-        if (strncmp("port", conf_buf, 4) == 0) {
+        else if (strncmp("port", conf_buf, 4) == 0) {
             cf->port = atoi(delim_pos + 1);     
         }
 
-        if (strncmp("worker_num", conf_buf, 10) == 0) {
+        else if (strncmp("worker_num", conf_buf, 10) == 0) {
             cf->worker_num = atoi(delim_pos + 1);
         }
+
+        else if (strncmp("detect_time_sec", conf_buf, 15) == 0) {
+            cf->detect_time_sec = atoi(delim_pos + 1);
+        }
+
+        else if (strncmp("detect_time_usec", conf_buf, 16) == 0) {
+            cf->detect_time_usec = atoi(delim_pos + 1);
+        }
+
+        else {
+            log_err("read config file error!");
+            return 0;
+        }
+
     }
 
     fclose(fp);

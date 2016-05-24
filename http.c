@@ -17,8 +17,13 @@ void dorequest(struct schedule *s, void *ud)
     int n;
     char *root = req->root;
     debug("root=%s", root);
+    log_info("process %d is dorequest", getpid());
     
     for(;;) {
+        if(req->istimeout) {
+            log_info("timeout, ready to close fd %d", fd);
+            goto close;
+        }
         n = read(fd, req->last, req->buf + MAX_BUF - req->last);
         check(req->buf + MAX_BUF > req->last, "req->buf + MAX_BUF");
 
@@ -35,7 +40,7 @@ void dorequest(struct schedule *s, void *ud)
             coroutine_yield(s);
             continue;
         }
-
+        req->mtime = time(NULL);
         req->last += n;
         check(req->last <= req->buf + MAX_BUF, "req->last <= MAX_BUF");
         log_info("has read %d, buffer remaining: %ld, buffer rece:%s", n, req->buf + MAX_BUF - req->last, req->buf);

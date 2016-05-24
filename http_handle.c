@@ -10,6 +10,7 @@ mime_type_t http_mime[] =
     {".pdf", "application/pdf"},
     {".word", "application/msword"},
     {".png", "image/png"},
+    {".bmp", "image/bmp"},
     {".gif", "image/gif"},
     {".jpg", "image/jpeg"},
     {".jpeg", "image/jpeg"},
@@ -31,7 +32,7 @@ static void http_process_content_length(http_request_t *req, http_response_t *re
 http_header_handle_t http_headers_in[] = {
     {"Host", http_process_ignore},
     {"Connection", http_process_connection},
-    {"If-Modified-Since", http_process_if_modified_since},
+    {"If-Modified-Since", http_process_ignore},
     {"Content-Length", http_process_content_length},
     {"", http_process_ignore}
 };

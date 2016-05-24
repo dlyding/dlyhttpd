@@ -5,6 +5,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/mman.h>
+#include <sys/time.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <fcntl.h>
@@ -40,11 +41,14 @@
 
 #define CONF "dlyhttpd.conf"
 #define PROGRAM_VERSION "0.1"
+#define TIMEOUT_THRESHOLD 10.0
 
 typedef struct conf_s {
     char root[ROOTLEN];
     int port;
     int worker_num;
+    long detect_time_sec;
+    long detect_time_usec;
 }conf_t;
 
 int read_conf(char *filename, conf_t *cf);    // 配置文件中不能有空格

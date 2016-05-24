@@ -19,9 +19,10 @@ static void usage() {
 }
 
 conf_t cf;
+struct schedule * S;
 
+void timeout_handler(int signo);
 void acceptfun(struct schedule *s, void *ud);
-void dorequest(struct schedule *s, void *ud);
 void workerloop(int listenfd);
 
 int main(int argc, char* argv[])
@@ -67,6 +68,8 @@ int main(int argc, char* argv[])
     log_info("root:%s", cf.root);
     log_info("port:%d", cf.port);
     log_info("worker_num:%d", cf.worker_num);
+    log_info("detect_time_sec:%ld", cf.detect_time_sec);
+    log_info("detect_time_usec:%ld", cf.detect_time_usec);
 
     struct sigaction sa;
     memset(&sa, '\0', sizeof(sa));
@@ -115,14 +118,29 @@ int main(int argc, char* argv[])
 void workerloop(int listenfd)
 {
     int i;
-    struct schedule * S = coroutine_open();
-    printf("worker start\n");
+
+    S = coroutine_open();
+    log_info("%d worker start", getpid());
     int co1 = coroutine_new(S, acceptfun, (void *)&listenfd);
-    printf("%d\n", S->cap);
-    printf("%d\n", co1);
+    log_info("S->cap:%d, main coroutine:%d", S->cap, co1);
+
+    struct itimerval timer;
+    timer.it_interval.tv_sec = cf.detect_time_sec;
+    timer.it_interval.tv_usec = cf.detect_time_usec;
+    timer.it_value = timer.it_interval;
+    setitimer(ITIMER_REAL, &timer, NULL);
+
+    struct sigaction act;
+    act.sa_handler = timeout_handler;
+    act.sa_flags = 0;
+    sigemptyset(&act.sa_mask);
+    sigaction(SIGALRM, &act, NULL);
+
     for(i = 0; i < S->cap; i++) {
-        if(coroutine_status(S, i)) {
-            coroutine_resume(S,i);
+        if(S->co[i] != NULL) {
+            if(coroutine_status(S, i)) {
+                coroutine_resume(S,i);
+            }
         }
         if(i == S->cap - 1)
             i = -1;
@@ -158,6 +176,23 @@ void acceptfun(struct schedule *s, void *ud)
             http_request_t *request = (http_request_t *)malloc(sizeof(http_request_t));
             init_request_t(request, pcfd, &cf);
             int co = coroutine_new(s, dorequest, (void *)request);
+        }
+    }
+}
+
+void timeout_handler(int signo)
+{
+    int i;
+    time_t now_time = time(NULL);
+    double time_diff = 0;
+    for(i = 1; i < S->cap; i++) {
+        if(S->co[i] != NULL) {
+            if(coroutine_status(S, i)) {
+                time_diff = difftime(now_time, ((http_request_t *)((S->co[i])->ud))->mtime);
+                if(time_diff > TIMEOUT_THRESHOLD) {
+                    ((http_request_t *)((S->co[i])->ud))->istimeout = 1;
+                }
+            }
         }
     }
 }
