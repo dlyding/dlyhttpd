@@ -10,6 +10,9 @@ int read_conf(char *filename, conf_t *cf) {
     char *delim_pos;
 
     while (fgets(conf_buf, BUFLEN, fp)) {
+        if(conf_buf[0] == '#') {
+            continue;
+        }
         delim_pos = strstr(conf_buf, DELIM);  
         if (!delim_pos)
             return DLY_CONF_ERROR;
