@@ -231,6 +231,9 @@ void serve_php(int sfd, char *filename, char *querystring, http_response_t *res)
 
     sprintf(header, "HTTP/1.1 %d %s\r\n", res->status, get_shortmsg_from_status_code(res->status));
     sprintf(header, "%sServer: dlyhttpd\r\n", header);
+    if (res->keep_alive) {
+        sprintf(header, "%sConnection: keep-alive\r\n", header);
+    }
 
     // 创建套接字
     cfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -316,7 +319,8 @@ void serve_php(int sfd, char *filename, char *querystring, http_response_t *res)
         message = (char *)malloc(contentLengthR);
         read(cfd, message, contentLengthR);
     }
-    sprintf(header, "%sContent-length:%d\r\n", header, contentLengthR);
+    sprintf(header, "%sContent-length: %d\r\n", header, contentLengthR);
+    sprintf(message, "%s\r\n", message);
     printf("%s",header);
     printf("%s",message);
     write(sfd, header, strlen(header)); 
