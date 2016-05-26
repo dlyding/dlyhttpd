@@ -41,6 +41,14 @@ int read_conf(char *filename, conf_t *cf) {
             cf->detect_time_usec = atoi(delim_pos + 1);
         }
 
+        else if (strncmp("phpfpm_ip", conf_buf, 9) == 0) {
+            strcpy(cf->phpfpm_ip, delim_pos + 1);     
+        }
+
+        else if (strncmp("phpfpm_port", conf_buf, 11) == 0) {
+            cf->phpfpm_port = (unsigned short)atoi(delim_pos + 1);
+        }
+
         else {
             log_err("read config file error!");
             return 0;

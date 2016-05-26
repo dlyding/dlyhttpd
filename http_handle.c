@@ -21,6 +21,7 @@ mime_type_t http_mime[] =
     {".gz", "application/x-gzip"},
     {".tar", "application/x-tar"},
     {".css", "text/css"},
+    {".js", "application/x-javascript"},
     {NULL ,"text/plain"}
 };
 

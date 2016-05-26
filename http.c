@@ -128,7 +128,6 @@ void dorequest(struct schedule *s, void *ud)
         else{
             // 释放空间
             free(res);
-            read_conf(CONF, &cf);
             init_request_t(req, fd, &cf);
         }
 
@@ -238,17 +237,17 @@ void serve_php(int sfd, char *filename, char *querystring, http_response_t *res)
     // 创建套接字
     cfd = socket(AF_INET, SOCK_STREAM, 0);
     if(-1 == cfd){
-        //errorHandling("socket() error");
+        log_err("socket error!");
     }
-
+    printf("%u\n", cf.phpfpm_port);
     memset(&serv_addr, 0, sizeof(serv_addr));
     serv_addr.sin_family = AF_INET;
-    serv_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
-    serv_addr.sin_port = htons(9000);
+    serv_addr.sin_addr.s_addr = inet_addr(cf.phpfpm_ip);
+    serv_addr.sin_port = htons(cf.phpfpm_port);
 
     // 连接服务器
     if(-1 == connect(cfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr))){
-        //errorHandling("connetct() error");
+        log_err("connetct error!");
     }
 
 
@@ -260,7 +259,7 @@ void serve_php(int sfd, char *filename, char *querystring, http_response_t *res)
 
     str_len = write(cfd, &beginRecord, sizeof(beginRecord));
     if(-1 == str_len){
-        //errorHandling("Write beginRecord failed!");
+        log_err("Write beginRecord failed!");
     }
 
     // 传递FCGI_PARAMS参数

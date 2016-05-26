@@ -32,7 +32,7 @@
 #define LISTENQ     1024
 
 #define BUFLEN      1024
-#define ROOTLEN     256
+#define SHORTLEN     256
 
 #define DELIM    "="
 #define CR       '\r'
@@ -44,12 +44,16 @@
 #define TIMEOUT_THRESHOLD 10.0               // 超时阈值
 
 typedef struct conf_s {
-    char root[ROOTLEN];
+    char root[SHORTLEN];
     int port;
     int worker_num;
     long detect_time_sec;
     long detect_time_usec;
+    char phpfpm_ip[SHORTLEN];
+    unsigned short phpfpm_port;
 }conf_t;
+
+conf_t cf;
 
 int read_conf(char *filename, conf_t *cf);    // 配置文件中不能有空格,#后为注释
 

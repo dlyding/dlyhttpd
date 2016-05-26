@@ -18,7 +18,6 @@ static void usage() {
 	);
 }
 
-conf_t cf;
 struct schedule * S;
 
 void timeout_handler(int signo);
@@ -32,10 +31,10 @@ int main(int argc, char* argv[])
     int options_index = 0;
     char *conf_file = CONF;
 
-    if (argc == 1) {
+    /*if (argc == 1) {
         usage();
         return 0;
-    }
+    }*/
 
     while ((opt = getopt_long(argc, argv, "vc:?h", long_options, &options_index)) != EOF) {
         switch (opt) {

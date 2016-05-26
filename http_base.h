@@ -77,7 +77,7 @@ typedef struct http_response_s{
 } http_response_t;
 
 typedef struct http_header_s {
-    char *key_start, *key_end;          /* not include end */
+    char *key_start, *key_end;         
     char *value_start, *value_end;
     list_head list;
 } http_header_t;
