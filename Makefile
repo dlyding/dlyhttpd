@@ -1,6 +1,6 @@
 ALGNAMES := coroutine fastcgi filelock http http_base http_handle http_parse rio util
 			
-INCFILES := dbg.h $(addsuffix .h, $(ALGNAMES))
+INCFILES := list.h dbg.h $(addsuffix .h, $(ALGNAMES))
 OBJFILES := dlyhttpd.o $(addsuffix .o, $(ALGNAMES))
 
 EXEFILE  := dlyhttpd
