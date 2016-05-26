@@ -2,8 +2,7 @@
 
 static void do_error(int fd, char *cause, char *errnum, char *shortmsg, char *longmsg);
 static void serve_static(int fd, char *filename, size_t filesize, http_response_t *res);
-//static void dorequest_line(struct schedule *s, http_request_t *req, char *filename, char *querystring);
-//static void dorequest_header(struct schedule *s, http_request_t *req);
+void serve_php(int sfd, char *filename, char *querystring, http_response_t *res);
 
 void dorequest(struct schedule *s, void *ud)
 {
@@ -51,7 +50,7 @@ void dorequest(struct schedule *s, void *ud)
             continue;
         }
         else if (rc != DLY_OK) {
-            log_err("rc != DLY_OK");
+            log_info("http_parse_request_line error!");
             goto close;
         }
 
@@ -61,7 +60,7 @@ void dorequest(struct schedule *s, void *ud)
             continue;
         }
         else if (rc != DLY_OK) {
-            log_err("rc != DLY_OK");
+            log_info("http_parse_request_header error!");
             goto close;
         }
         
@@ -115,7 +114,7 @@ void dorequest(struct schedule *s, void *ud)
         
         char *filetype = rindex(filename, '.');
         if(strcmp(".php", filetype) == 0) {
-            // TODO
+            serve_php(fd, filename, querystring, res);
         }
         else{
             serve_static(fd, filename, sbuf.st_size, res);
@@ -220,4 +219,109 @@ void serve_static(int fd, char *filename, size_t filesize, http_response_t *res)
 
 out:
     return;
+}
+
+void serve_php(int sfd, char *filename, char *querystring, http_response_t *res)
+{
+    int cfd;
+    struct sockaddr_in serv_addr;
+    int str_len;
+    int contentLengthR;
+    char header[MAXLINE];
+
+    sprintf(header, "HTTP/1.1 %d %s\r\n", res->status, get_shortmsg_from_status_code(res->status));
+    sprintf(header, "%sServer: dlyhttpd\r\n", header);
+
+    // 创建套接字
+    cfd = socket(AF_INET, SOCK_STREAM, 0);
+    if(-1 == cfd){
+        //errorHandling("socket() error");
+    }
+
+    memset(&serv_addr, 0, sizeof(serv_addr));
+    serv_addr.sin_family = AF_INET;
+    serv_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+    serv_addr.sin_port = htons(9000);
+
+    // 连接服务器
+    if(-1 == connect(cfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr))){
+        //errorHandling("connetct() error");
+    }
+
+
+    // 首先构造一个FCGI_BeginRequestRecord结构
+    FCGI_BeginRequestRecord beginRecord;
+    beginRecord.header = 
+        make_header(FCGI_BEGIN_REQUEST, FCGI_REQUEST_ID, sizeof(beginRecord.body), 0);
+    beginRecord.body = make_beginRequestBody(FCGI_RESPONDER);
+
+    str_len = write(cfd, &beginRecord, sizeof(beginRecord));
+    if(-1 == str_len){
+        //errorHandling("Write beginRecord failed!");
+    }
+
+    // 传递FCGI_PARAMS参数
+    char *params[][2] = {
+        {"SCRIPT_FILENAME", filename}, 
+        {"REQUEST_METHOD", "GET"}, 
+        {"QUERY_STRING", querystring}, 
+        {"", ""}
+    };
+
+    int i, contentLength, paddingLength;
+    FCGI_ParamsRecord *paramsRecordp;
+    for(i = 0; params[i][0] != ""; i++){
+        contentLength = strlen(params[i][0]) + strlen(params[i][1]) + 2; // 2字节是存放名-值长度的两字节
+        paddingLength = (contentLength % 8) == 0 ? 0 : 8 - (contentLength % 8);
+        paramsRecordp = (FCGI_ParamsRecord *)malloc(sizeof(FCGI_ParamsRecord) + contentLength + paddingLength);
+        paramsRecordp->nameLength = (unsigned char)strlen(params[i][0]);    // 填充参数值
+        paramsRecordp->valueLength = (unsigned char)strlen(params[i][1]);   // 填充参数名
+        paramsRecordp->header = 
+            make_header(FCGI_PARAMS, FCGI_REQUEST_ID, contentLength, paddingLength);
+        memset(paramsRecordp->data, 0, contentLength + paddingLength);
+        memcpy(paramsRecordp->data, params[i][0], strlen(params[i][0]));
+        memcpy(paramsRecordp->data + strlen(params[i][0]), params[i][1], strlen(params[i][1]));
+        str_len = write(cfd, paramsRecordp, 8 + contentLength + paddingLength);
+
+        if(-1 == str_len){
+            //errorHandling("Write beginRecord failed!");
+        }
+        //printf("Write params %s  %s\n",params[i][0], params[i][1]);
+        free(paramsRecordp);
+
+    }
+
+    // 传递FCGI_STDIN参数
+    FCGI_Header stdinHeader;
+    stdinHeader = make_header(FCGI_STDIN, FCGI_REQUEST_ID, 0, 0);
+    write(cfd, &stdinHeader, sizeof(stdinHeader));
+
+    // 读取解析FASTCGI应用响应的数据
+    FCGI_Header respHeader;
+    char *message;
+    str_len = read(cfd, &respHeader, 8);
+    if(-1 == str_len){
+        //errorHandling("read responder failed!");
+    }
+    //printf("Start read....\n");
+    //printf("fastcgi responder is : %X\n", respHeader.type);
+    //printf("fastcgi responder is : %X\n", respHeader.contentLengthB1);
+    //printf("fastcgi responder is : %X\n", respHeader.contentLengthB0);
+    if(respHeader.type == FCGI_STDOUT){
+        contentLengthR = 
+            ((int)respHeader.contentLengthB1 << 8) + (int)respHeader.contentLengthB0;
+        //printf("conteng length is : %d\n", (int)respHeader.contentLengthB1 << 8);
+        //printf("conteng length is : %d\n", (int)respHeader.contentLengthB0);
+        //printf("conteng length is : %d\n", contentLengthR);
+        message = (char *)malloc(contentLengthR);
+        read(cfd, message, contentLengthR);
+    }
+    sprintf(header, "%sContent-length:%d\r\n", header, contentLengthR);
+    printf("%s",header);
+    printf("%s",message);
+    write(sfd, header, strlen(header)); 
+    write(sfd, message, contentLengthR);
+
+    free(message);
+    close(cfd);
 }

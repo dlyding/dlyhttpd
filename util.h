@@ -40,8 +40,8 @@
 #define CRLFCRLF "\r\n\r\n"
 
 #define CONF "dlyhttpd.conf"
-#define PROGRAM_VERSION "0.1"
-#define TIMEOUT_THRESHOLD 10.0
+#define PROGRAM_VERSION "1.0"
+#define TIMEOUT_THRESHOLD 10.0               // 超时阈值
 
 typedef struct conf_s {
     char root[ROOTLEN];
@@ -51,7 +51,7 @@ typedef struct conf_s {
     long detect_time_usec;
 }conf_t;
 
-int read_conf(char *filename, conf_t *cf);    // 配置文件中不能有空格
+int read_conf(char *filename, conf_t *cf);    // 配置文件中不能有空格,#后为注释
 
 int open_listenfd(int port);
 int make_socket_non_blocking(int fd);
