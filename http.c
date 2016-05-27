@@ -319,11 +319,11 @@ void serve_php(int sfd, int methodID, char *filename, char *querystring, http_re
         //printf("conteng length is : %d\n", contentLengthR);
         message = (char *)malloc(contentLengthR);
         read(cfd, message, contentLengthR);
+        printf("%s\n",message);
     }
     sprintf(header, "%sContent-length: %d\r\n", header, contentLengthR);
-    sprintf(message, "%s\r\n", message);
     printf("%s",header);
-    printf("%s",message);
+    printf("%s\n",message);
     write(sfd, header, strlen(header)); 
     write(sfd, message, contentLengthR);
 
