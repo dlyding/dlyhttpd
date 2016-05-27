@@ -30,6 +30,7 @@
 #define MAX_BUF     10240
 #define MAXLINE     8192
 #define SHORTLINE   512
+#define METHODLEN   15
 
 typedef struct http_request_s {
     char *root;                  // 不包含'/'

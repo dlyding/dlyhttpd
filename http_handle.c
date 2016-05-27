@@ -25,6 +25,8 @@ mime_type_t http_mime[] =
     {NULL ,"text/plain"}
 };
 
+char *method_string[] = {"GET", "POST", "HEAD", "PUT", "DELETE", "TRACE", "CONNECT", "OPTIONS"};
+
 static void http_process_ignore(http_request_t *req, http_response_t *res, char *data, int len);
 static void http_process_connection(http_request_t *req, http_response_t *res, char *data, int len);
 static void http_process_if_modified_since(http_request_t *req, http_response_t *res, char *data, int len);
@@ -203,6 +205,11 @@ int get_information_from_url(const http_request_t *req, char *filename, char *qu
 		strncpy(querystring, req->query_start, req->query_end - req->query_start + 1);
 		return DLY_OK;
 	}
+}
+
+char *get_method_string_from_methodID(int methodID)
+{
+	return method_string[methodID - 10];
 }
 
 void http_handle_header(http_request_t *req, http_response_t *res) {

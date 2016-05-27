@@ -2,7 +2,7 @@
 
 static void do_error(int fd, char *cause, char *errnum, char *shortmsg, char *longmsg);
 static void serve_static(int fd, char *filename, size_t filesize, http_response_t *res);
-void serve_php(int sfd, char *filename, char *querystring, http_response_t *res);
+void serve_php(int sfd, int methodID, char *filename, char *querystring, http_response_t *res);
 
 void dorequest(struct schedule *s, void *ud)
 {
@@ -114,7 +114,7 @@ void dorequest(struct schedule *s, void *ud)
         
         char *filetype = rindex(filename, '.');
         if(strcmp(".php", filetype) == 0) {
-            serve_php(fd, filename, querystring, res);
+            serve_php(fd, req->method, filename, querystring, res);
         }
         else{
             serve_static(fd, filename, sbuf.st_size, res);
@@ -220,14 +220,16 @@ out:
     return;
 }
 
-void serve_php(int sfd, char *filename, char *querystring, http_response_t *res)
+void serve_php(int sfd, int methodID, char *filename, char *querystring, http_response_t *res)
 {
     int cfd;
     struct sockaddr_in serv_addr;
     int str_len;
     int contentLengthR;
     char header[MAXLINE];
+    char method[METHODLEN];
 
+    sprintf(method, "%s", get_method_string_from_methodID(methodID));
     sprintf(header, "HTTP/1.1 %d %s\r\n", res->status, get_shortmsg_from_status_code(res->status));
     sprintf(header, "%sServer: dlyhttpd\r\n", header);
     if (res->keep_alive) {
@@ -265,7 +267,7 @@ void serve_php(int sfd, char *filename, char *querystring, http_response_t *res)
     // 传递FCGI_PARAMS参数
     char *params[][2] = {
         {"SCRIPT_FILENAME", filename}, 
-        {"REQUEST_METHOD", "GET"}, 
+        {"REQUEST_METHOD", method}, 
         {"QUERY_STRING", querystring}, 
         {"", ""}
     };
