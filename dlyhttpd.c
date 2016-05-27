@@ -35,31 +35,32 @@ int main(int argc, char* argv[])
         usage();
         return 0;
     }*/
+    if(argc > 1) {
+    	while ((opt = getopt_long(argc, argv, "vc:?h", long_options, &options_index)) != EOF) {
+        	switch (opt) {
+            	case  0 : break;
+            	case 'c':
+                	conf_file = optarg;
+                	break;
+            	case 'v':
+                	printf(PROGRAM_VERSION"\n");
+                	return 0;
+            	case ':':
+            	case 'h':
+            	case '?':
+                	usage();
+                	return 0;
+        	}
+    	}
 
-    while ((opt = getopt_long(argc, argv, "vc:?h", long_options, &options_index)) != EOF) {
-        switch (opt) {
-            case  0 : break;
-            case 'c':
-                conf_file = optarg;
-                break;
-            case 'v':
-                printf(PROGRAM_VERSION"\n");
-                return 0;
-            case ':':
-            case 'h':
-            case '?':
-                usage();
-                return 0;
-        }
-    }
+    	debug("conf-file = %s", conf_file);
 
-    debug("conf-file = %s", conf_file);
-
-    if (optind < argc) {
-        log_err("non-option ARGV-elements: ");
-        while (optind < argc)
-            log_err("%s ", argv[optind++]);
-        return 0;
+    	if (optind < argc) {
+        	log_err("non-option ARGV-elements: ");
+        	while (optind < argc)
+            	log_err("%s ", argv[optind++]);
+        	return 0;
+    	}
     }
 
     rc = read_conf(conf_file, &cf);
