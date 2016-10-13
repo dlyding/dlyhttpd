@@ -95,7 +95,7 @@ coroutine_resume(struct schedule * S, int id) {
 	case COROUTINE_READY:
 		getcontext(&C->ctx);
 		C->ctx.uc_stack.ss_sp = S->stack;
-		C->ctx.uc_stack.ss_size = STACK_SIZE;
+		C->ctx.uc_stack.ss_size = STACK_SIZE;      // 这个栈是mainfunc函数运行的栈，ucontext不会去自动保存，需要我们手动去保存
 		C->ctx.uc_link = &S->main;
 		S->running = id;
 		C->status = COROUTINE_RUNNING;
