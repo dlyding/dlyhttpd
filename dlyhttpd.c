@@ -109,20 +109,21 @@ int main(int argc, char* argv[])
     	}
     }
     for(i = 0; i < cf.worker_num; i++) {
+        close(listenfd);
         waitpid(pid[i], NULL, 0);
-    }
-    close(listenfd);
+    }                        
     return 0;
 }
 
 void workerloop(int listenfd)
 {
-    int i;
-
+    epoll_t* et = epoll_create(0, 1024);
     S = coroutine_open();
     log_info("%d worker start", getpid());
     int co1 = coroutine_new(S, acceptfun, (void *)&listenfd);
     log_info("S->cap:%d, main coroutine:%d", S->cap, co1);
+
+    epoll_add(et, listenfd, (void*)&co1, EPOLLIN | EPOLLET);
 
     struct itimerval timer;
     timer.it_interval.tv_sec = cf.detect_time_sec;
@@ -136,7 +137,8 @@ void workerloop(int listenfd)
     sigemptyset(&act.sa_mask);
     sigaction(SIGALRM, &act, NULL);
 
-    for(i = 0; i < S->cap; i++) {
+    int i, n, fdtmp;
+    /*or(i = 0; i < S->cap; i++) {
         if(S->co[i] != NULL) {
             if(coroutine_status(S, i)) {
                 coroutine_resume(S,i);
@@ -144,9 +146,24 @@ void workerloop(int listenfd)
         }
         if(i == S->cap - 1)
             i = -1;
+    }*/
+
+    while(1) {
+        n = epoll_wait1(et, -1);
+        for(i = 0; i < n; i++) {
+            fdtmp = et->events[i].data.fd;
+            if(fdtmp == listenfd) {
+                coroutine_resume(S, *(et->events[i].data.ptr));
+            }
+            else {
+                coroutine_resume(S, *(et->events[i].data.ptr));
+            }
+        }
     }
+
     coroutine_close(S);
     close(listenfd);
+    epoll_close(et);
 }
 
 void acceptfun(struct schedule *s, void *ud)
@@ -176,6 +193,7 @@ void acceptfun(struct schedule *s, void *ud)
             http_request_t *request = (http_request_t *)malloc(sizeof(http_request_t));
             init_request_t(request, pcfd, &cf);
             int co = coroutine_new(s, dorequest, (void *)request);
+            epoll_add(et, pcfd, (void*)&co, EPOLLIN | EPOLLET);//????????
         }
     }
 }

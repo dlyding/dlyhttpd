@@ -23,6 +23,7 @@
 #include "dbg.h"
 #include "rio.h"
 #include "coroutine.h"
+#include "epoll.h"
 
 #define DLY_OK            0
 #define DLY_NULL_POINTER -1
