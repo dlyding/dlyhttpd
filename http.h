@@ -6,6 +6,6 @@
 #include "http_parse.h"
 #include "fastcgi.h"
 
-void dorequest(struct schedule *s, void *ud);
+void dorequest(schedule_t *s, void *ud);
 
 #endif

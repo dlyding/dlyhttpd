@@ -1,11 +1,16 @@
 #ifndef __UTIL_H__
 #define __UTIL_H__
 
+//#define _XOPEN_SOURCE 
+//#define _GNU_SOURCE
+
+#include <time.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/mman.h>
 #include <sys/time.h>
+#include <sys/wait.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <fcntl.h>
@@ -17,13 +22,12 @@
 #include <getopt.h>
 #include <signal.h>
 #include <string.h>
-#include <time.h>
 #include <math.h>
 
 #include "dbg.h"
 #include "rio.h"
 #include "coroutine.h"
-#include "epoll.h"
+#include "epoll_new.h"
 
 #define DLY_OK            0
 #define DLY_NULL_POINTER -1

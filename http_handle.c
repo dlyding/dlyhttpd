@@ -249,6 +249,7 @@ static void http_process_connection(http_request_t *req, http_response_t *res, c
 
 static void http_process_if_modified_since(http_request_t *req, http_response_t *res, char *data, int len) {
     struct tm tm;
+    // ?????????#define _XOPEN_SOURCE 
     strptime(data, "%a, %d %b %Y %H:%M:%S GMT", &tm);
     time_t client_time = mktime(&tm);
 

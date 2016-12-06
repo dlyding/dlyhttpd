@@ -1,11 +1,11 @@
-#include "epoll.h"
+#include "epoll_new.h"
 #include "dbg.h"
 
-epoll_t* epoll_create(int size, int maxevents) {
+epoll_t* epoll_create_new(int size, int maxevents) {
     epoll_t* et = (epoll_t*)malloc(sizeof(epoll_t));
     et->epfd = epoll_create1(size);
     et->maxevents = maxevents; 
-    check(fd > 0, "epoll_create");
+    check(et->epfd > 0, "epoll_create");
 
     et->events = (epoll_event_t *)malloc(sizeof(epoll_event_t) * et->maxevents);
     return et;
@@ -41,13 +41,13 @@ void epoll_del(epoll_t* et, int fd) {
     return;
 }
 
-int epoll_wait1(epoll_t* et, int timeout) {
+int epoll_wait_new(epoll_t* et, int timeout) {
     int n = epoll_wait(et->epfd, et->events, et->maxevents, timeout);
     check(n >= 0, "epoll_wait");
     return n;
 }
 
-void epoll_close(epoll_t* et) {
+void epoll_close_new(epoll_t* et) {
     free(et->events);
     close(et->epfd);
     free(et);

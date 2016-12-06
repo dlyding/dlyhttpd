@@ -18,10 +18,11 @@ static void usage() {
 	);
 }
 
-struct schedule * S;
+schedule_t * S;
+epoll_t* et;
 
 void timeout_handler(int signo);
-void acceptfun(struct schedule *s, void *ud);
+void acceptfun(schedule_t *s, void *ud);
 void workerloop(int listenfd);
 
 int main(int argc, char* argv[])
@@ -117,7 +118,7 @@ int main(int argc, char* argv[])
 
 void workerloop(int listenfd)
 {
-    epoll_t* et = epoll_create(0, 1024);
+    et = epoll_create_new(0, 1024);
     S = coroutine_open();
     log_info("%d worker start", getpid());
     int co1 = coroutine_new(S, acceptfun, (void *)&listenfd);
@@ -149,24 +150,24 @@ void workerloop(int listenfd)
     }*/
 
     while(1) {
-        n = epoll_wait1(et, -1);
+        n = epoll_wait_new(et, -1);
         for(i = 0; i < n; i++) {
             fdtmp = et->events[i].data.fd;
             if(fdtmp == listenfd) {
-                coroutine_resume(S, *(et->events[i].data.ptr));
+                coroutine_resume(S, *(int *)(et->events[i].data.ptr));
             }
             else {
-                coroutine_resume(S, *(et->events[i].data.ptr));
+                coroutine_resume(S, *(int *)(et->events[i].data.ptr));
             }
         }
     }
 
     coroutine_close(S);
     close(listenfd);
-    epoll_close(et);
+    epoll_close_new(et);
 }
 
-void acceptfun(struct schedule *s, void *ud)
+void acceptfun(schedule_t *s, void *ud)
 {
     int *lfd = (int *)ud;
     int pcfd;
@@ -184,7 +185,8 @@ void acceptfun(struct schedule *s, void *ud)
                 coroutine_yield(s);
             }
             else {
-                coroutine_yield(s);
+                log_err("acceptfun error, pid %d exit", getpid());
+                abort();           // 如何优雅的退出 
             }
         }
         else {
@@ -193,7 +195,7 @@ void acceptfun(struct schedule *s, void *ud)
             http_request_t *request = (http_request_t *)malloc(sizeof(http_request_t));
             init_request_t(request, pcfd, &cf);
             int co = coroutine_new(s, dorequest, (void *)request);
-            epoll_add(et, pcfd, (void*)&co, EPOLLIN | EPOLLET);//????????
+            epoll_add(et, pcfd, (void*)&co, EPOLLIN | EPOLLET);
         }
     }
 }

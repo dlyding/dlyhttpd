@@ -4,7 +4,7 @@ static void do_error(int fd, char *cause, char *errnum, char *shortmsg, char *lo
 static void serve_static(int fd, char *filename, size_t filesize, http_response_t *res);
 void serve_php(int sfd, int methodID, char *filename, char *querystring, http_response_t *res);
 
-void dorequest(struct schedule *s, void *ud)
+void dorequest(schedule_t *s, void *ud)
 {
 	http_request_t *req = (http_request_t *)ud;
     conf_t cf;
@@ -19,10 +19,6 @@ void dorequest(struct schedule *s, void *ud)
     log_info("process %d is dorequest", getpid());
     
     for(;;) {
-        if(req->istimeout) {
-            log_info("timeout, ready to close fd %d", fd);
-            goto close;
-        }
         n = read(fd, req->last, req->buf + MAX_BUF - req->last);
         check(req->buf + MAX_BUF > req->last, "req->buf + MAX_BUF");
 
@@ -132,7 +128,10 @@ void dorequest(struct schedule *s, void *ud)
         }
 
     }
-    
+    if(req->istimeout) {
+        log_info("timeout, ready to close fd %d", fd);
+        goto close;
+    }   // 超时怎么处理
     return;
 
 close:

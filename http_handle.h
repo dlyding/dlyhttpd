@@ -10,7 +10,7 @@ typedef struct mime_type_s {
 
 typedef void (*http_header_handler_pt)(http_request_t *req, http_response_t *res, char *data, int len);
 
-typedef struct http_header_handle_s{
+typedef struct http_header_handle_s {
     char *name;
     http_header_handler_pt handler;
 } http_header_handle_t;
@@ -23,5 +23,6 @@ int get_information_from_url(const http_request_t *req, char *filename, char *qu
 void http_handle_header(http_request_t *req, http_response_t *res);
 const char *get_shortmsg_from_status_code(int status_code);
 char *get_method_from_methodID(int methodID);
+char *get_method_string_from_methodID(int methodID);
 
 #endif
