@@ -1,4 +1,4 @@
-ALGNAMES := coroutine fastcgi filelock http http_base http_handle http_parse rio util epoll_new
+ALGNAMES := coroutine fastcgi filelock http http_base http_handle http_parse rio util epoll_new heap
 			
 INCFILES := list.h dbg.h $(addsuffix .h, $(ALGNAMES))
 OBJFILES := dlyhttpd.o $(addsuffix .o, $(ALGNAMES))

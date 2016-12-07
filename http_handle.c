@@ -1,4 +1,4 @@
-#define _GNU_SOURCE 
+#define _GNU_SOURCE       
 #include <time.h>
 #include "http_handle.h"
 
@@ -251,7 +251,8 @@ static void http_process_connection(http_request_t *req, http_response_t *res, c
 
 static void http_process_if_modified_since(http_request_t *req, http_response_t *res, char *data, int len) {
     struct tm tm;
-    // ?????????#define _XOPEN_SOURCE 
+    // ?????????#define _XOPEN_SOURCE man文件有误，应使用#define _GNU_SOURCE
+    // http_handle.c:253:5: warning: implicit declaration of function ‘strptime’ [-Wimplicit-function-declaration]
     strptime(data, "%a, %d %b %Y %H:%M:%S GMT", &tm);
     time_t client_time = mktime(&tm);
 
