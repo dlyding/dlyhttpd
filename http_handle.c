@@ -1,3 +1,5 @@
+#define _GNU_SOURCE 
+#include <time.h>
 #include "http_handle.h"
 
 mime_type_t http_mime[] = 
