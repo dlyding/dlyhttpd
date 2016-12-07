@@ -7,7 +7,7 @@ void serve_php(int sfd, int methodID, char *filename, char *querystring, http_re
 void dorequest(schedule_t *s, void *ud)
 {
 	http_request_t *req = (http_request_t *)ud;
-    conf_t cf;
+    //conf_t cf;
     int fd = req->fd;
     int rc;
     char filename[SHORTLINE];
@@ -124,7 +124,15 @@ void dorequest(schedule_t *s, void *ud)
         else{
             // 释放空间
             free(res);
+            // cf初始化？？？？？？？？
             init_request_t(req, fd, &cf);
+            // 加入超时模块
+            // yield
+            /*if(req->istimeout) {
+                log_info("timeout, ready to close fd %d", fd);
+                // 超时模块中删除
+                goto close;
+            }*/
         }
 
     }

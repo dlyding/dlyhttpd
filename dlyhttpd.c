@@ -150,7 +150,10 @@ void workerloop(int listenfd)
     }*/
 
     while(1) {
+        // 获取最近超时时间
         n = epoll_wait_new(et, -1);
+        // 如果是超时，怎么办
+        // 
         for(i = 0; i < n; i++) {
             fdtmp = et->events[i].data.fd;
             if(fdtmp == listenfd) {
