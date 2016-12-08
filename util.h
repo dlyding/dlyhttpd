@@ -28,6 +28,7 @@
 #include "rio.h"
 #include "coroutine.h"
 #include "epoll_new.h"
+#include "timer.h"
 
 #define DLY_OK            0
 #define DLY_NULL_POINTER -1
@@ -46,14 +47,14 @@
 
 #define CONF "dlyhttpd.conf"
 #define PROGRAM_VERSION "1.0"
-#define TIMEOUT_THRESHOLD 10.0               // 超时阈值
+//#define TIMEOUT_THRESHOLD 10.0               // 超时阈值
 
 typedef struct conf_s {
     char root[SHORTLEN];
     int port;
     int worker_num;
-    long detect_time_sec;
-    long detect_time_usec;
+    //long detect_time_sec;
+    //long detect_time_usec;
     char phpfpm_ip[SHORTLEN];
     unsigned short phpfpm_port;
 }conf_t;

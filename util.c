@@ -33,13 +33,13 @@ int read_conf(char *filename, conf_t *cf) {
             cf->worker_num = atoi(delim_pos + 1);
         }
 
-        else if (strncmp("detect_time_sec", conf_buf, 15) == 0) {
+        /*else if (strncmp("detect_time_sec", conf_buf, 15) == 0) {
             cf->detect_time_sec = atoi(delim_pos + 1);
         }
 
         else if (strncmp("detect_time_usec", conf_buf, 16) == 0) {
             cf->detect_time_usec = atoi(delim_pos + 1);
-        }
+        }*/
 
         else if (strncmp("phpfpm_ip", conf_buf, 9) == 0) {
             strcpy(cf->phpfpm_ip, delim_pos + 1);     

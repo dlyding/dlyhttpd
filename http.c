@@ -18,24 +18,36 @@ void dorequest(schedule_t *s, void *ud)
     debug("root=%s", root);
     log_info("process %d is dorequest", getpid());
     
+    // 删除超时模块
     for(;;) {
         n = read(fd, req->last, req->buf + MAX_BUF - req->last);
         check(req->buf + MAX_BUF > req->last, "req->buf + MAX_BUF");
 
         if (n == 0) {   // EOF
             log_info("read return 0, ready to close fd %d", fd);
+            if(req->timer != NULL) {
+                req->timer->istimeout = 1;
+            }
             goto close;
         }
 
         if (n < 0) {
             if (errno != EAGAIN) {
                 log_err("read err, and errno = %d", errno);
+                if(req->timer != NULL) {
+                    req->timer->istimeout = 1;
+                }
                 goto close;
             }
             coroutine_yield(s);
+            if(req->timer->istimeout) {
+                log_info("timeout, ready to close fd %d", fd);
+                // 超时模块中删除
+                goto close;
+            }
             continue;
         }
-        req->mtime = time(NULL);
+        //req->mtime = time(NULL);
         req->last += n;
         check(req->last <= req->buf + MAX_BUF, "req->last <= MAX_BUF");
         log_info("has read %d, buffer remaining: %ld, buffer rece:%s", n, req->buf + MAX_BUF - req->last, req->buf);
@@ -47,6 +59,9 @@ void dorequest(schedule_t *s, void *ud)
         }
         else if (rc != DLY_OK) {
             log_info("http_parse_request_line error!");
+            if(req->timer != NULL) {
+                req->timer->istimeout = 1;
+            }
             goto close;
         }
 
@@ -57,6 +72,9 @@ void dorequest(schedule_t *s, void *ud)
         }
         else if (rc != DLY_OK) {
             log_info("http_parse_request_header error!");
+            if(req->timer != NULL) {
+                req->timer->istimeout = 1;
+            }
             goto close;
         }
         
@@ -82,6 +100,9 @@ void dorequest(schedule_t *s, void *ud)
         http_response_t *res = (http_response_t *)malloc(sizeof(http_response_t));
         if (res == NULL) {
             log_err("no enough space for zv_http_out_t");
+            if(req->timer != NULL) {
+                req->timer->istimeout = 1;
+            }
             goto close;
         }
 
@@ -92,6 +113,9 @@ void dorequest(schedule_t *s, void *ud)
             res->status = HTTP_NOT_FOUND;
             do_error(fd, filename, "404", "Not Found", "dlyhttpd can't find the file");
             free(res);
+            if(req->timer != NULL) {
+                req->timer->istimeout = 1;
+            }
             goto close;
         }
 
@@ -100,6 +124,9 @@ void dorequest(schedule_t *s, void *ud)
             res->status = HTTP_FORBIDDEN;
             do_error(fd, filename, "403", "Forbidden", "dlyhttpd can't read the file");
             free(res);
+            if(req->timer != NULL) {
+                req->timer->istimeout = 1;
+            }
             goto close;
         }
         
@@ -119,27 +146,36 @@ void dorequest(schedule_t *s, void *ud)
         if (!res->keep_alive) {
             log_info("no keep_alive! ready to close");
             free(res);
+            if(req->timer != NULL) {
+                req->timer->istimeout = 1;
+            }
             goto close;
         }
         else{
-            // 释放空间
+            // 释放空间 ，加入超时模块
             free(res);
-            // cf初始化？？？？？？？？
-            init_request_t(req, fd, &cf);
-            // 加入超时模块
+            http_request_t* reqnew = (http_request_t*)malloc(sizeof(http_request_t));
+            init_request_t_copy(reqnew, req);
+            if(req->timer != NULL) {
+                req->timer->istimeout = 1;
+            }
+            free(req);
+            req = reqnew;
+            req->timer = add_timer(req, TIMEOUT_DEFAULT);
+            coroutine_yield(s);
             // yield
-            /*if(req->istimeout) {
+            if(req->timer->istimeout) {
                 log_info("timeout, ready to close fd %d", fd);
                 // 超时模块中删除
                 goto close;
-            }*/
+            }
         }
 
     }
-    if(req->istimeout) {
+    /*if(req->istimeout) {
         log_info("timeout, ready to close fd %d", fd);
         goto close;
-    }   // 超时怎么处理
+    }   // 超时怎么处理*/
     return;
 
 close:

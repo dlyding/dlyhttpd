@@ -63,8 +63,10 @@ typedef struct http_request_s {
     char *body_start;
     int body_length;
 
-    int istimeout;      // 判断是否超时
-    time_t mtime;       // 保存请求时的时间，用于超时
+    //int istimeout;      // 判断是否超时
+    //time_t mtime;       // 保存请求时的时间，用于超时
+    int coid;             // 与其相关联的协程号
+    timer_node_t* timer;   // 与其相关联的定时器节点
 
 } http_request_t;
 
@@ -83,7 +85,8 @@ typedef struct http_header_s {
     list_head list;
 } http_header_t;
 
-int init_request_t(http_request_t *req, int fd, conf_t *cf);
+int init_request_t(http_request_t *req, int fd, int coid, conf_t *cft);
+int init_request_t_copy(http_request_t *reqnew, http_request_t *reqold);
 int free_request_t(http_request_t *req);
 
 int init_response_t(http_response_t *res, int fd);

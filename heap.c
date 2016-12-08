@@ -95,8 +95,6 @@ void *heap_top(heap_t *ht) {
     return ht->contptr[0];
 }
 
-
-
 int heap_deltop(heap_t *ht) {
     if (heap_is_empty(ht)) {
         return DLY_OK;

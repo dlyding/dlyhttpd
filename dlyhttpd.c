@@ -69,8 +69,8 @@ int main(int argc, char* argv[])
     log_info("root:%s", cf.root);
     log_info("port:%d", cf.port);
     log_info("worker_num:%d", cf.worker_num);
-    log_info("detect_time_sec:%ld", cf.detect_time_sec);
-    log_info("detect_time_usec:%ld", cf.detect_time_usec);
+    //log_info("detect_time_sec:%ld", cf.detect_time_sec);
+    //log_info("detect_time_usec:%ld", cf.detect_time_usec);
 
     struct sigaction sa;
     memset(&sa, '\0', sizeof(sa));
@@ -120,23 +120,24 @@ void workerloop(int listenfd)
 {
     et = epoll_create_new(0, 1024);
     S = coroutine_open();
+    timer_init();
     log_info("%d worker start", getpid());
     int co1 = coroutine_new(S, acceptfun, (void *)&listenfd);
     log_info("S->cap:%d, main coroutine:%d", S->cap, co1);
 
     epoll_add(et, listenfd, (void*)&co1, EPOLLIN | EPOLLET);
 
-    struct itimerval timer;
+   /* struct itimerval timer;
     timer.it_interval.tv_sec = cf.detect_time_sec;
     timer.it_interval.tv_usec = cf.detect_time_usec;
     timer.it_value = timer.it_interval;
-    setitimer(ITIMER_REAL, &timer, NULL);
+    setitimer(ITIMER_REAL, &timer, NULL);*/
 
-    struct sigaction act;
+    /*struct sigaction act;
     act.sa_handler = timeout_handler;
     act.sa_flags = 0;
     sigemptyset(&act.sa_mask);
-    sigaction(SIGALRM, &act, NULL);
+    sigaction(SIGALRM, &act, NULL);*/
 
     int i, n, fdtmp;
     /*or(i = 0; i < S->cap; i++) {
@@ -151,9 +152,14 @@ void workerloop(int listenfd)
 
     while(1) {
         // 获取最近超时时间
-        n = epoll_wait_new(et, -1);
+        int time = get_timeout_node_time();
+        n = epoll_wait_new(et, time);
         // 如果是超时，怎么办
-        // 
+        timer_node_t* tn = handle_timeout_node();
+        if(tn != NULL) {
+            http_request_t* req = (http_request_t*)(tn->ud);
+            coroutine_resume(S, req->coid);
+        }
         for(i = 0; i < n; i++) {
             fdtmp = et->events[i].data.fd;
             if(fdtmp == listenfd) {
@@ -168,9 +174,10 @@ void workerloop(int listenfd)
     coroutine_close(S);
     close(listenfd);
     epoll_close_new(et);
+    timer_close();
 }
 
-void acceptfun(schedule_t *s, void *ud)
+void acceptfun(schedule_t *S, void *ud)
 {
     int *lfd = (int *)ud;
     int pcfd;
@@ -185,7 +192,7 @@ void acceptfun(schedule_t *s, void *ud)
         if(pcfd == -1){
             //free(pcfd);
             if ((errno == EAGAIN) || (errno == EWOULDBLOCK)) {
-                coroutine_yield(s);
+                coroutine_yield(S);
             }
             else {
                 log_err("acceptfun error, pid %d exit", getpid());
@@ -196,14 +203,14 @@ void acceptfun(schedule_t *s, void *ud)
             //printf("%d\n", getpid());
             make_socket_non_blocking(pcfd);
             http_request_t *request = (http_request_t *)malloc(sizeof(http_request_t));
-            init_request_t(request, pcfd, &cf);
-            int co = coroutine_new(s, dorequest, (void *)request);
+            int co = coroutine_new(S, dorequest, (void *)request);
+            init_request_t(request, pcfd, co, &cf);
             epoll_add(et, pcfd, (void*)&co, EPOLLIN | EPOLLET);
         }
     }
 }
 
-void timeout_handler(int signo)
+/*void timeout_handler(int signo)
 {
     int i;
     time_t now_time = time(NULL);
@@ -218,4 +225,4 @@ void timeout_handler(int signo)
             }
         }
     }
-}
+}*/
