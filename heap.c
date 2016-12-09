@@ -25,6 +25,8 @@ static int resize(heap_t *ht, size_t new_cap) {
 }
 
 static void swap(heap_t *ht, size_t i, size_t j) {
+    if(i == j) 
+        return;
     void *tmp = ht->contptr[i];
     ht->contptr[i] = ht->contptr[j];
     ht->contptr[j] = tmp;
@@ -100,10 +102,11 @@ int heap_deltop(heap_t *ht) {
     if (heap_is_empty(ht)) {
         return DLY_OK;
     }
-
     swap(ht, 0, ht->size - 1);
     ht->size--;
-    sink(ht, 0);
+    // 不判断会导致进程退出
+    if(ht->size > 0)
+        sink(ht, 0);
     if (ht->size > 0 && ht->size <= (ht->cap - 1)/4) {
         if (resize(ht, ht->cap / 2) < 0) {
             return -1;
