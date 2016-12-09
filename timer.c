@@ -9,7 +9,7 @@ static int timer_comp(void *ti, void *tj) {
     return (timeri->key < timerj->key)? 1: 0;
 }
 
-heap_t* heap_timer;
+heap_t* heap_timer = NULL;
 size_t current_msec;
 
 static void time_update() {
@@ -30,7 +30,7 @@ int timer_init() {
     if(heap_timer != NULL) 
         return -1;
     heap_timer = heap_create(timer_comp, HEAP_DEFAULT_SIZE);
-    check(rc == DLY_OK, "heap_create error");
+    check(heap_timer != NULL, "heap_create error");
    
     time_update();
     return DLY_OK;

@@ -109,10 +109,25 @@ int main(int argc, char* argv[])
         	return 0;
     	}
     }
-    for(i = 0; i < cf.worker_num; i++) {
+    /*for(i = 0; i < cf.worker_num; i++) {
         close(listenfd);
         waitpid(pid[i], NULL, 0);
-    }                        
+    }   */
+    while(1) {
+        pid_t cpid = wait(NULL);
+        for(i = 0; i < cf.worker_num; i++) {        
+            if(pid[i] == cpid) {
+                pid[i] = fork();
+                if(pid[i] == 0) {
+                    workerloop(listenfd);
+                    return 0;
+                }
+                else
+                    break;
+            }
+        }    
+    }
+    close(listenfd);                
     return 0;
 }
 
@@ -149,7 +164,6 @@ void workerloop(int listenfd)
         if(i == S->cap - 1)
             i = -1;
     }*/
-
     while(1) {
         // 获取最近超时时间
         int time = get_timeout_node_time();
@@ -196,7 +210,7 @@ void acceptfun(schedule_t *S, void *ud)
             }
             else {
                 log_err("acceptfun error, pid %d exit", getpid());
-                abort();           // 如何优雅的退出 
+                exit(0);          // 如何优雅的退出 
             }
         }
         else {

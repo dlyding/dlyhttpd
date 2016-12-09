@@ -64,6 +64,7 @@ static size_t sink(heap_t *ht, size_t k) {
 heap_t* heap_create(heap_comp_function_ptr comp, size_t cap) {
     heap_t* ht = (heap_t*)malloc(sizeof(heap_t));
     if(ht == NULL) {
+        log_err("ht_init: ht malloc failed");
         return NULL;
     }      
     ht->contptr = (void **)malloc(sizeof(void *) * (cap));
