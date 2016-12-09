@@ -187,11 +187,11 @@ void do_error(int fd, char *cause, char *errnum, char *shortmsg, char *longmsg)
 {
     char header[MAXLINE], body[MAXLINE];
 
-    sprintf(body, "<html><title>Tiny Error</title>");
+    sprintf(body, "<html><title>dlyhttpd Error</title>");
     sprintf(body, "%s<body bgcolor=""ffffff"">\r\n", body);
     sprintf(body, "%s%s: %s\r\n", body, errnum, shortmsg);
     sprintf(body, "%s<p>%s: %s\r\n</p>", body, longmsg, cause);
-    sprintf(body, "%s<hr><em>The Tiny web server</em>\r\n", body);
+    sprintf(body, "%s<hr><em>The dlyhttpd web server</em>\r\n", body);
 
     sprintf(header, "HTTP/1.1 %s %s\r\n", errnum, shortmsg);
     sprintf(header, "%sServer: dlyhttpd\r\n", header);
@@ -247,7 +247,7 @@ void serve_static(int fd, char *filename, size_t filesize, http_response_t *res)
         goto out;
     }
 
-    int srcfd = open(filename, O_RDONLY, 0);
+    /*int srcfd = open(filename, O_RDONLY, 0);
     check(srcfd > 2, "open error");
     // can use sendfile
     char *srcaddr = mmap(NULL, filesize, PROT_READ, MAP_PRIVATE, srcfd, 0);
@@ -257,7 +257,12 @@ void serve_static(int fd, char *filename, size_t filesize, http_response_t *res)
     n = rio_writen(fd, srcaddr, filesize);
     // check(n == filesize, "rio_writen error");
 
-    munmap(srcaddr, filesize);
+    munmap(srcaddr, filesize);*/
+
+    int srcfd = open(filename, O_RDONLY, 0);
+    //sendfile(fd, srcfd, NULL, 5);
+    sendfile(fd, srcfd, NULL, filesize);
+    close(srcfd);
 
 out:
     return;
