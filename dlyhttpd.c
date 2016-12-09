@@ -112,7 +112,7 @@ int main(int argc, char* argv[])
     /*for(i = 0; i < cf.worker_num; i++) {
         close(listenfd);
         waitpid(pid[i], NULL, 0);
-    }   */
+    }*/   
     while(1) {
         pid_t cpid = wait(NULL);
         for(i = 0; i < cf.worker_num; i++) {        
@@ -167,6 +167,7 @@ void workerloop(int listenfd)
     while(1) {
         // 获取最近超时时间
         int time = get_timeout_node_time();
+        log_info("time = %d", time);
         n = epoll_wait_new(et, time);
         // 如果是超时，怎么办
         timer_node_t* tn = handle_timeout_node();

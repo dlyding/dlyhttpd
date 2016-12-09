@@ -50,7 +50,7 @@ void dorequest(schedule_t *s, void *ud)
         //req->mtime = time(NULL);
         req->last += n;
         check(req->last <= req->buf + MAX_BUF, "req->last <= MAX_BUF");
-        log_info("has read %d, buffer remaining: %ld, buffer rece:%s", n, req->buf + MAX_BUF - req->last, req->buf);
+        //log_info("has read %d, buffer remaining: %ld, buffer rece:%s", n, req->buf + MAX_BUF - req->last, req->buf);
         
         log_info("ready to parse request line"); 
         rc = http_parse_request_line(req);
@@ -227,6 +227,7 @@ void serve_static(int fd, char *filename, size_t filesize, http_response_t *res)
         sprintf(header, "%sContent-length: %zu\r\n", header, filesize);
         localtime_r(&(res->mtime), &tm);
         strftime(buf, SHORTLINE,  "%a, %d %b %Y %H:%M:%S GMT", &tm);
+        sprintf(header, "%sCache-Control: %s\r\n", header, "max-age = 3");
         sprintf(header, "%sLast-Modified: %s\r\n", header, buf);
     } 
     else {

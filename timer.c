@@ -42,7 +42,7 @@ int get_timeout_node_time() {
     int rc;
 
     while (!heap_is_empty(heap_timer)) {
-        debug("find_timer");
+        debug("get_timeout_node_time");
         time_update();
         tn = (timer_node_t *)heap_top(heap_timer);
         check(tn != NULL, "heap_top error");
@@ -55,13 +55,12 @@ int get_timeout_node_time() {
         }
              
         time = (int) (tn->key - current_msec);
-        debug("in find_timer, key = %zu, cur = %zu",
+        debug("in get_timeout_node_time, key = %zu, cur = %zu",
                 tn->key,
                 current_msec);
         time = (time > 0? time: 0);
         break;
     }
-    
     return time;
 }
 
