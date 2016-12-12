@@ -291,6 +291,10 @@ const char *get_shortmsg_from_status_code(int status_code) {
     if (status_code = HTTP_NOT_FOUND) {
         return "Not Found";
     }
+
+    if (status_code = HTTP_NO_CONTENT) {
+        return "No Content";
+    }
     
     return "Unknown";
 }

@@ -1,8 +1,9 @@
 #include "http.h"
 
 static void do_error(int fd, char *cause, char *errnum, char *shortmsg, char *longmsg);
-static void serve_static(int fd, char *filename, size_t filesize, http_response_t *res);
+static void serve_static(int fd, int methodID, char *filename, size_t filesize, http_response_t *res);
 void serve_php(int sfd, int methodID, char *filename, char *querystring, http_response_t *res);
+void do_options(int fd);
 
 void dorequest(schedule_t *s, void *ud)
 {
@@ -40,17 +41,19 @@ void dorequest(schedule_t *s, void *ud)
                 goto close;
             }
             coroutine_yield(s);
-            if(req->timer->istimeout) {
-                log_info("timeout, ready to close fd %d", fd);
-                // 超时模块中删除
-                goto close;
+            if(req->timer != NULL) {
+                if(req->timer->istimeout) {
+                    log_info("timeout, ready to close fd %d", fd);
+                    // 超时模块中删除
+                    goto close;
+                }
             }
             continue;
         }
         //req->mtime = time(NULL);
         req->last += n;
         check(req->last <= req->buf + MAX_BUF, "req->last <= MAX_BUF");
-        //log_info("has read %d, buffer remaining: %ld, buffer rece:%s", n, req->buf + MAX_BUF - req->last, req->buf);
+        log_info("has read %d, buffer remaining: %ld, buffer rece:%s", n, req->buf + MAX_BUF - req->last, req->buf);
         
         log_info("ready to parse request line"); 
         rc = http_parse_request_line(req);
@@ -86,6 +89,14 @@ void dorequest(schedule_t *s, void *ud)
         check(rc == DLY_OK, "set_protocol_for_request error, %d", rc);
         log_info("HTTP version = %d.%d", req->http_major, req->http_minor);
 
+        if(req->method == OPTIONS) {
+            do_options(req->fd);
+            if(req->timer != NULL) {
+                req->timer->istimeout = 1;
+            }
+            goto close;
+        }
+
         rc = set_url_for_request(req);
         check(rc == DLY_OK, "set_url_for_request error, %d", rc);
         log_info("uri = %.*s", req->url_end - req->url_start, req->url_start);
@@ -93,7 +104,7 @@ void dorequest(schedule_t *s, void *ud)
         // apply space for querystring
         rc = get_information_from_url(req, filename, querystring);
         check(rc == DLY_OK, "get_information_from_url error, %d", rc);
-        log_info("filename = %s, querystring = %s", filename, querystring);        
+        log_info("filename = %s, querystring = %s", filename, querystring);      
         /*
         *   handle http header
         */
@@ -140,7 +151,7 @@ void dorequest(schedule_t *s, void *ud)
             serve_php(fd, req->method, filename, querystring, res);
         }
         else{
-            serve_static(fd, filename, sbuf.st_size, res);
+            serve_static(fd, req->method, filename, sbuf.st_size, res);
         }
         
         if (!res->keep_alive) {
@@ -183,6 +194,13 @@ close:
     close(fd);
 }
 
+void do_options(int fd) {
+    char header[MAXLINE];
+    sprintf(header, "HTTP/1.1 204 No Content\r\n");
+    sprintf(header, "%sAllow: GET, HEAD, OPTIONS\r\n\r\n", header);
+    rio_writen(fd, header, strlen(header));
+}
+
 void do_error(int fd, char *cause, char *errnum, char *shortmsg, char *longmsg)
 {
     char header[MAXLINE], body[MAXLINE];
@@ -205,7 +223,7 @@ void do_error(int fd, char *cause, char *errnum, char *shortmsg, char *longmsg)
     return;
 }
 
-void serve_static(int fd, char *filename, size_t filesize, http_response_t *res) 
+void serve_static(int fd, int methodID, char *filename, size_t filesize, http_response_t *res) 
 {
     char header[MAXLINE];
     char buf[SHORTLINE];
@@ -259,7 +277,8 @@ void serve_static(int fd, char *filename, size_t filesize, http_response_t *res)
     // check(n == filesize, "rio_writen error");
 
     munmap(srcaddr, filesize);*/
-
+    if(methodID == HEAD)
+        goto out;
     int srcfd = open(filename, O_RDONLY, 0);
     //sendfile(fd, srcfd, NULL, 5);
     sendfile(fd, srcfd, NULL, filesize);

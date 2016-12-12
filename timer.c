@@ -40,7 +40,7 @@ int get_timeout_node_time() {
     timer_node_t *tn;
     int time = TIMER_INFINITE;
     int rc;
-
+    log_info("get_size: %d", heap_timer->size);
     while (!heap_is_empty(heap_timer)) {
         debug("get_timeout_node_time");
         time_update();
@@ -68,7 +68,7 @@ timer_node_t* handle_timeout_node() {
     debug("in handle_timeout_node");
     timer_node_t *tn;
     int rc;
-
+    log_info("size: %d", heap_timer->size);
     while (!heap_is_empty(heap_timer)) {
         debug("handle_timeout_node, size = %zu", heap_size(heap_timer));
         time_update();
@@ -101,18 +101,18 @@ timer_node_t* handle_timeout_node() {
 timer_node_t* add_timer(void *ud, size_t timeout) {
     int rc;
     timer_node_t *tn = (timer_node_t *)malloc(sizeof(timer_node_t));
-    check(tn != NULL, "zv_add_timer: malloc error");
+    check(tn != NULL, "add_timer: malloc error");
 
     time_update();
     //rq->timer = tn;
     tn->key = current_msec + timeout;
-    debug("in zv_add_timer, key = %zu", tn->key);
+    debug("in add_timer, key = %zu", tn->key);
     tn->istimeout = 0;
     //tn->handler = handler;
     tn->ud = ud;
 
     rc = heap_insert(heap_timer, tn);
-    check(rc == 0, "zv_add_timer: zv_pq_insert error");
+    check(rc == 0, "add_timer: heap_insert error");
     return tn;
 }
 
