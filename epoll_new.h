@@ -14,7 +14,10 @@ typedef struct epoll_s {
 
 epoll_t* epoll_create_new(int size, int maxevents);
 void epoll_add(epoll_t* et, int fd, void* ptr, __uint32_t flag_bit);
+//使用epoll_event_t 的 fd 成员变量传递参数
+void epoll_add_para(epoll_t* et, int fd, int para, __uint32_t flag_bit);
 void epoll_mod(epoll_t* et, int fd, void* ptr, __uint32_t flag_bit);
+void epoll_mod_para(epoll_t* et, int fd, int para, __uint32_t flag_bit);
 void epoll_del(epoll_t* et, int fd);
 int epoll_wait_new(epoll_t* et, int timeout);
 void epoll_close_new(epoll_t* et);

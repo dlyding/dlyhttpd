@@ -13,8 +13,19 @@ epoll_t* epoll_create_new(int size, int maxevents) {
 
 void epoll_add(epoll_t* et, int fd, void* ptr, __uint32_t flag_bit) {
     epoll_event_t event;
-    event.data.fd = fd;
+    //event.data.fd = fd;    // epoll_event_t 是联合体
     event.data.ptr = ptr;
+    event.events = flag_bit;
+    int rc = epoll_ctl(et->epfd, EPOLL_CTL_ADD, fd, &event);
+    check(rc == 0, "epoll_add");
+    return;
+}
+
+void epoll_add_para(epoll_t* et, int fd, int para, __uint32_t flag_bit) {
+    epoll_event_t event;
+    //event.data.fd = fd;    // epoll_event_t 是联合体
+    //event.data.ptr = ptr;
+    event.data.fd = para;
     event.events = flag_bit;
     int rc = epoll_ctl(et->epfd, EPOLL_CTL_ADD, fd, &event);
     check(rc == 0, "epoll_add");
@@ -23,8 +34,19 @@ void epoll_add(epoll_t* et, int fd, void* ptr, __uint32_t flag_bit) {
 
 void epoll_mod(epoll_t* et, int fd, void* ptr, __uint32_t flag_bit) {
     epoll_event_t event;
-    event.data.fd = fd;
+    //event.data.fd = fd;
     event.data.ptr = ptr;
+    event.events = flag_bit;
+    int rc = epoll_ctl(et->epfd, EPOLL_CTL_MOD, fd, &event);
+    check(rc == 0, "epoll_mod");
+    return;
+}
+
+void epoll_mod_para(epoll_t* et, int fd, int para, __uint32_t flag_bit) {
+    epoll_event_t event;
+    //event.data.fd = fd;
+    //event.data.ptr = ptr;
+    event.data.fd = para;
     event.events = flag_bit;
     int rc = epoll_ctl(et->epfd, EPOLL_CTL_MOD, fd, &event);
     check(rc == 0, "epoll_mod");

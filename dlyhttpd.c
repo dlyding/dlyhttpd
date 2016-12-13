@@ -140,7 +140,10 @@ void workerloop(int listenfd)
     int co1 = coroutine_new(S, acceptfun, (void *)&listenfd);
     log_info("S->cap:%d, main coroutine:%d", S->cap, co1);
 
-    epoll_add(et, listenfd, (void*)&co1, EPOLLIN | EPOLLET);
+    epoll_add_para(et, listenfd, co1, EPOLLIN | EPOLLET);
+    //epoll_add(et, listenfd, (void*)&co1, EPOLLIN);
+
+    log_info("listenfd = %d", listenfd);
 
    /* struct itimerval timer;
     timer.it_interval.tv_sec = cf.detect_time_sec;
@@ -154,7 +157,7 @@ void workerloop(int listenfd)
     sigemptyset(&act.sa_mask);
     sigaction(SIGALRM, &act, NULL);*/
 
-    int i, n, fdtmp;
+    int i, n;
     /*or(i = 0; i < S->cap; i++) {
         if(S->co[i] != NULL) {
             if(coroutine_status(S, i)) {
@@ -169,6 +172,7 @@ void workerloop(int listenfd)
         int time = get_timeout_node_time();
         log_info("time = %d", time);
         n = epoll_wait_new(et, time);
+        log_info("n = %d", n);
         // 如果是超时，怎么办
         timer_node_t* tn = handle_timeout_node();
         if(tn != NULL) {
@@ -176,13 +180,19 @@ void workerloop(int listenfd)
             coroutine_resume(S, req->coid);
         }
         for(i = 0; i < n; i++) {
-            fdtmp = et->events[i].data.fd;
+            log_info("i = %d", i);
+            log_info("n = %d", n);
+            log_info("%d", et->events[i].data.fd);
+            //fdtmp = et->events[i].data.fd;
+            /*log_info("fdtmp = %d", fdtmp);
             if(fdtmp == listenfd) {
                 coroutine_resume(S, *(int *)(et->events[i].data.ptr));
             }
             else {
                 coroutine_resume(S, *(int *)(et->events[i].data.ptr));
-            }
+            }*/
+            coroutine_resume(S, et->events[i].data.fd);
+            log_info("epoll_process");
         }
     }
 
@@ -194,6 +204,7 @@ void workerloop(int listenfd)
 
 void acceptfun(schedule_t *S, void *ud)
 {
+    log_info("acceptfun");
     int *lfd = (int *)ud;
     int pcfd;
     struct sockaddr_in clientaddr; 
@@ -203,6 +214,7 @@ void acceptfun(schedule_t *S, void *ud)
         //printf("start accept..\n");
         //pcfd = (int *)malloc(sizeof(int));
         pcfd = accept(*lfd, (struct sockaddr *)&clientaddr, &len);
+        log_info("pcfd = %d", pcfd);
         //printf("%d\n", *pcfd);
         if(pcfd == -1){
             //free(pcfd);
@@ -220,7 +232,7 @@ void acceptfun(schedule_t *S, void *ud)
             http_request_t *request = (http_request_t *)malloc(sizeof(http_request_t));
             int co = coroutine_new(S, dorequest, (void *)request);
             init_request_t(request, pcfd, co, &cf);
-            epoll_add(et, pcfd, (void*)&co, EPOLLIN | EPOLLET);
+            epoll_add_para(et, pcfd, co, EPOLLIN | EPOLLET);
         }
     }
 }

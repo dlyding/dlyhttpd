@@ -5,7 +5,7 @@
 #include "heap.h"
 
 #define TIMER_INFINITE -1
-#define TIMEOUT_DEFAULT 5000     /* ms */
+#define TIMEOUT_DEFAULT 5000    /* ms */
 
 //typedef int (*timer_handler_ptr)(void *rq);
 
