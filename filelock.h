@@ -11,21 +11,23 @@ extern "C" {
 #include <fcntl.h>
 #include <string.h>
 #include <errno.h>
+#include <stdlib.h>
 
-#define LOCK_BLOCK    0
-#define LOCK_UNBLOCK  1
+#define LOCK_FILE     "lock.txt"
+#define LOCK_UNBLOCK  0
+#define LOCK_BLOCK    1
 
 typedef struct filelock_mutex_s {
 	int fd;
-	char filename[20];
+	char* filename;
 }filelock_mutex_t; 
 
-int filelock_mutex_init(filelock_mutex_t *fmt);
+filelock_mutex_t* filelock_mutex_create();
 int filelock_mutex_rlock(filelock_mutex_t *fmt, int isblock);
 int filelock_mutex_wlock(filelock_mutex_t *fmt, int isblock);
 int filelock_mutex_unlock(filelock_mutex_t *fmt);
 int filelock_mutex_locktest(filelock_mutex_t *fmt);
-int filelock_mutex_destroy(filelock_mutex_t *fmt);
+int filelock_mutex_close(filelock_mutex_t *fmt);
 
 #ifdef __cplusplus
 }

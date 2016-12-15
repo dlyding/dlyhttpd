@@ -1,5 +1,8 @@
 #include "util.h"
 #include "http.h"
+#include "filelock.h"
+
+#define MAX_SERVE_FD_NUM    512
 
 static const struct option long_options[]=
 {
@@ -20,6 +23,10 @@ static void usage() {
 
 schedule_t * S;
 epoll_t* et;
+filelock_mutex_t* fmt;
+int serve_fd_num = 0;           // 每个进程服务的连接数
+int isachieve_lock = 0;         // 标志进程是否获得锁
+int isadd_listenfd = 0;         // 是否添加listenfd
 
 void timeout_handler(int signo);
 void acceptfun(schedule_t *s, void *ud);
@@ -87,6 +94,8 @@ int main(int argc, char* argv[])
     rc = make_socket_non_blocking(listenfd);
     check(rc == 0, "make_socket_non_blocking");
 
+    fmt = filelock_mutex_create();
+
 	int i;
 
     printf("start..\n"); 
@@ -127,7 +136,8 @@ int main(int argc, char* argv[])
             }
         }    
     }
-    close(listenfd);                
+    close(listenfd);
+    filelock_mutex_close(fmt);                
     return 0;
 }
 
@@ -140,7 +150,7 @@ void workerloop(int listenfd)
     int co1 = coroutine_new(S, acceptfun, (void *)&listenfd);
     log_info("S->cap:%d, main coroutine:%d", S->cap, co1);
 
-    epoll_add_para(et, listenfd, co1, EPOLLIN | EPOLLET);
+    //epoll_add_para(et, listenfd, co1, EPOLLIN | EPOLLET);
     //epoll_add(et, listenfd, (void*)&co1, EPOLLIN);
 
     log_info("listenfd = %d", listenfd);
@@ -157,7 +167,7 @@ void workerloop(int listenfd)
     sigemptyset(&act.sa_mask);
     sigaction(SIGALRM, &act, NULL);*/
 
-    int i, n;
+    int i, n, rc;
     /*or(i = 0; i < S->cap; i++) {
         if(S->co[i] != NULL) {
             if(coroutine_status(S, i)) {
@@ -171,9 +181,36 @@ void workerloop(int listenfd)
         // 获取最近超时时间
         int time = get_timeout_node_time();
         log_info("time = %d", time);
+        if(serve_fd_num == 0) {
+            epoll_add_para(et, listenfd, co1, EPOLLIN | EPOLLET);
+            isadd_listenfd = 1;
+            log_info("add listenfd");
+        }
+        else if(serve_fd_num > MAX_SERVE_FD_NUM) {
+
+        }
+        else {
+            rc = filelock_mutex_wlock(fmt, LOCK_UNBLOCK);
+            if(rc == 0) {
+                isachieve_lock = 1;
+                epoll_add_para(et, listenfd, co1, EPOLLIN | EPOLLET);
+                isadd_listenfd = 1;
+                log_info("achieve mutex lock, add listenfd");
+            }
+        }  
+
         n = epoll_wait_new(et, time);
         log_info("n = %d", n);
-        // 如果是超时，怎么办
+
+        if(isachieve_lock == 1) {
+            filelock_mutex_unlock(fmt);
+            isachieve_lock = 0;
+        }
+
+        if(isadd_listenfd = 1) {
+            epoll_del(et, listenfd);
+        }
+        
         timer_node_t* tn = handle_timeout_node();
         if(tn != NULL) {
             http_request_t* req = (http_request_t*)(tn->ud);
@@ -200,6 +237,7 @@ void workerloop(int listenfd)
     close(listenfd);
     epoll_close_new(et);
     timer_close();
+    filelock_mutex_close(fmt);
 }
 
 void acceptfun(schedule_t *S, void *ud)
@@ -233,6 +271,7 @@ void acceptfun(schedule_t *S, void *ud)
             int co = coroutine_new(S, dorequest, (void *)request);
             init_request_t(request, pcfd, co, &cf);
             epoll_add_para(et, pcfd, co, EPOLLIN | EPOLLET);
+            serve_fd_num++;
         }
     }
 }

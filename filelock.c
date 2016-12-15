@@ -10,13 +10,13 @@ void lock_init(struct flock *lock, short type, short whence, off_t start, off_t 
     lock->l_len = len;
 }
 
-int filelock_mutex_init(filelock_mutex_t *fmt)
+filelock_mutex_t* filelock_mutex_create()
 {
-	if(fmt == NULL) {
-		return -1;
-	}
-	strcpy(fmt->filename, "lock.txt");
+	filelock_mutex_t* fmt = (filelock_mutex_t*)malloc(sizeof(filelock_mutex_t));
+	fmt->filename = (char*)malloc(sizeof(LOCK_FILE));
+	strcpy(fmt->filename, LOCK_FILE);
 	fmt->fd = open(fmt->filename, O_RDWR | O_CREAT, 0666);
+	return fmt;
 }
 
 int filelock_mutex_rlock(filelock_mutex_t *fmt, int isblock)
@@ -119,11 +119,12 @@ int filelock_mutex_locktest(filelock_mutex_t *fmt)
     return lock.l_pid;
 }
 
-int filelock_mutex_destroy(filelock_mutex_t *fmt)
+int filelock_mutex_close(filelock_mutex_t *fmt)
 {
 	if(fmt == NULL) {
 		return -1;
 	}
 	close(fmt->fd);
-	strcpy(fmt->filename, "");
+	free(fmt->filename);
+	free(fmt);
 }

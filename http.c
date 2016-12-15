@@ -1,5 +1,7 @@
 #include "http.h"
 
+extern int serve_fd_num;
+
 static void do_error(int fd, char *cause, char *errnum, char *shortmsg, char *longmsg);
 static void serve_static(int fd, int methodID, char *filename, size_t filesize, http_response_t *res);
 void serve_php(int sfd, int methodID, char *filename, char *querystring, http_response_t *res);
@@ -192,6 +194,7 @@ void dorequest(schedule_t *s, void *ud)
 close:
     free(req);
     close(fd);
+    serve_fd_num--;
 }
 
 void do_options(int fd) {
