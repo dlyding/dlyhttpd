@@ -8,6 +8,8 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+//#define DEBUG
+
 #define COL(x)  "\033[;" #x "m"  
 #define RED        COL(31)  
 #define GREEN      COL(32)  
@@ -18,7 +20,7 @@
 #define WHITE      COL(0)  
 #define DEFAULT    "\033[0m" 
 
-#ifdef NDEBUG
+#ifndef DEBUG
 #define debug(M, ...)
 #else
 #define debug(M, ...) fprintf(stderr, YELLOW"[DEBUG] pid:%d,"DEFAULT" (%s:%d) " M "\n", getpid(), __FILE__, __LINE__, ##__VA_ARGS__)

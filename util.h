@@ -28,7 +28,13 @@
 #include "rio.h"
 #include "coroutine.h"
 #include "epoll_new.h"
+
+#define _FILELOCK
+#define _TIMEOUT
+
+#ifdef _TIMEOUT
 #include "timer.h"
+#endif
 
 #define DLY_OK            0
 #define DLY_NULL_POINTER -1

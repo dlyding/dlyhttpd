@@ -67,8 +67,11 @@ typedef struct http_request_s {
     //int istimeout;      // 判断是否超时
     //time_t mtime;       // 保存请求时的时间，用于超时
     int coid;             // 与其相关联的协程号
-    timer_node_t* timer;   // 与其相关联的定时器节点
 
+    #ifdef _TIMEOUT
+    timer_node_t* timer;   // 与其相关联的定时器节点
+    #endif
+    
 } http_request_t;
 
 typedef struct http_response_s{

@@ -20,7 +20,11 @@ int init_request_t(http_request_t *req, int fd, int coid, conf_t *cft) {
     //req->mtime = time(NULL);
     //req->istimeout = 0;
     req->coid = coid;
+
+    #ifdef _TIMEOUT
     req->timer = NULL;
+    #endif
+
     return DLY_OK;
 }
 
@@ -44,7 +48,11 @@ int init_request_t_copy(http_request_t *reqnew, http_request_t *reqold) {
     //reqnew->mtime = time(NULL);
     //reqnew->istimeout = 0;
     reqnew->coid = reqold->coid;
+
+    #ifdef _TIMEOUT
     reqnew->timer = NULL;
+    #endif
+    
     return DLY_OK;
 }
 

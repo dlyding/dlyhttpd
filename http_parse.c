@@ -13,7 +13,7 @@ int http_parse_request_line(http_request_t *req) {
 
     state = req->state;
 
-    // log_info("ready to parese request line, start = %d, last= %d", (int)r->pos, (int)r->last);
+    // debug("ready to parese request line, start = %d, last= %d", (int)r->pos, (int)r->last);
     for (p = req->pos; p < req->last; p++) {
         ch = *p;
 
@@ -134,7 +134,7 @@ int http_parse_request_header(http_request_t *req) {
     state = req->state;
     //check(state == 0, "state should be 0");
 
-    //log_info("ready to parese request body, start = %d, last= %d", r->pos, r->last);
+    //debug("ready to parese request body, start = %d, last= %d", r->pos, r->last);
 
     http_header_t *hd; 
     for (p = req->pos; p < req->last; p++) {

@@ -2,3 +2,4 @@ html/
 *.o
 dlyhttpd
 lock.txt
+dlyhttpd.conf

@@ -1,6 +1,7 @@
-
 #include <sys/time.h>
 #include "timer.h"
+
+#define DLY_OK            0
 
 static int timer_comp(void *ti, void *tj) {
     timer_node_t *timeri = (timer_node_t *)ti;
@@ -40,7 +41,7 @@ int get_timeout_node_time() {
     timer_node_t *tn;
     int time = TIMER_INFINITE;
     int rc;
-    log_info("get_size: %d", heap_timer->size);
+    debug("get_size: %d", heap_timer->size);
     while (!heap_is_empty(heap_timer)) {
         debug("get_timeout_node_time");
         time_update();
@@ -68,7 +69,7 @@ timer_node_t* handle_timeout_node() {
     debug("in handle_timeout_node");
     timer_node_t *tn;
     int rc;
-    log_info("size: %d", heap_timer->size);
+    debug("size: %d", heap_timer->size);
     while (!heap_is_empty(heap_timer)) {
         debug("handle_timeout_node, size = %zu", heap_size(heap_timer));
         time_update();

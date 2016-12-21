@@ -2,7 +2,7 @@
 #define __HEAP_H__
 
 #include "dbg.h"
-#include "util.h"
+//#include "util.h"
 
 #define HEAP_DEFAULT_SIZE 8
 

@@ -54,11 +54,11 @@ void epoll_mod_para(epoll_t* et, int fd, int para, __uint32_t flag_bit) {
 }
 
 void epoll_del(epoll_t* et, int fd) {
-    epoll_event_t event;
+    //epoll_event_t event;
     /*et->event.data.fd = fd;
     et->event.data.ptr = NULL;
     rt->event.events = 0;*/
-    int rc = epoll_ctl(et->epfd, EPOLL_CTL_DEL, fd, &event);
+    int rc = epoll_ctl(et->epfd, EPOLL_CTL_DEL, fd, NULL);
     check(rc == 0, "epoll_del");
     return;
 }

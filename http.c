@@ -1,6 +1,8 @@
 #include "http.h"
 
+#ifdef _FILELOCK
 extern int serve_fd_num;
+#endif
 
 static void do_error(int fd, char *cause, char *errnum, char *shortmsg, char *longmsg);
 static void serve_static(int fd, int methodID, char *filename, size_t filesize, http_response_t *res);
@@ -19,7 +21,7 @@ void dorequest(schedule_t *s, void *ud)
     int n;
     char *root = req->root;
     debug("root=%s", root);
-    log_info("process %d is dorequest", getpid());
+    debug("process %d is dorequest", getpid());
     
     // 删除超时模块
     for(;;) {
@@ -27,95 +29,123 @@ void dorequest(schedule_t *s, void *ud)
         check(req->buf + MAX_BUF > req->last, "req->buf + MAX_BUF");
 
         if (n == 0) {   // EOF
-            log_info("read return 0, ready to close fd %d", fd);
+            debug("read return 0, ready to close fd %d", fd);
+
+            #ifdef _TIMEOUT
             if(req->timer != NULL) {
                 req->timer->istimeout = 1;
             }
+            #endif
+
             goto close;
         }
 
         if (n < 0) {
             if (errno != EAGAIN) {
                 log_err("read err, and errno = %d", errno);
+
+                #ifdef _TIMEOUT
                 if(req->timer != NULL) {
                     req->timer->istimeout = 1;
                 }
+                #endif
+
                 goto close;
             }
             coroutine_yield(s);
+
+            #ifdef _TIMEOUT
             if(req->timer != NULL) {
                 if(req->timer->istimeout) {
-                    log_info("timeout, ready to close fd %d", fd);
+                    debug("timeout, ready to close fd %d", fd);
                     // 超时模块中删除
                     goto close;
                 }
             }
+            #endif
+
             continue;
         }
         //req->mtime = time(NULL);
         req->last += n;
         check(req->last <= req->buf + MAX_BUF, "req->last <= MAX_BUF");
-        log_info("has read %d, buffer remaining: %ld, buffer rece:%s", n, req->buf + MAX_BUF - req->last, req->buf);
+        debug("has read %d, buffer remaining: %ld, buffer rece:%s", n, req->buf + MAX_BUF - req->last, req->buf);
         
-        log_info("ready to parse request line"); 
+        debug("ready to parse request line"); 
         rc = http_parse_request_line(req);
         if (rc == DLY_EAGAIN) {
             continue;
         }
         else if (rc != DLY_OK) {
-            log_info("http_parse_request_line error!");
+            debug("http_parse_request_line error!");
+
+            #ifdef _TIMEOUT
             if(req->timer != NULL) {
                 req->timer->istimeout = 1;
             }
+            #endif    
+
             goto close;
         }
 
-        log_info("ready to parse request header");
+        debug("ready to parse request header");
         rc = http_parse_request_header(req);
         if (rc == DLY_EAGAIN) {
             continue;
         }
         else if (rc != DLY_OK) {
-            log_info("http_parse_request_header error!");
+            debug("http_parse_request_header error!");
+
+            #ifdef _TIMEOUT
             if(req->timer != NULL) {
                 req->timer->istimeout = 1;
             }
+            #endif
+
             goto close;
         }
         
         rc = set_method_for_request(req);
         check(rc == DLY_OK, "set_method_for_request error, %d", rc);
-        log_info("method = %d", req->method);
+        debug("method = %d", req->method);
 
         rc = set_protocol_for_request(req);
         check(rc == DLY_OK, "set_protocol_for_request error, %d", rc);
-        log_info("HTTP version = %d.%d", req->http_major, req->http_minor);
+        debug("HTTP version = %d.%d", req->http_major, req->http_minor);
 
         if(req->method == OPTIONS) {
             do_options(req->fd);
+
+            #ifdef _TIMEOUT
             if(req->timer != NULL) {
                 req->timer->istimeout = 1;
             }
+            #endif
+
             goto close;
         }
 
         rc = set_url_for_request(req);
         check(rc == DLY_OK, "set_url_for_request error, %d", rc);
-        log_info("uri = %.*s", req->url_end - req->url_start, req->url_start);
+        debug("uri = %.*s", req->url_end - req->url_start, req->url_start);
         // apply space for filename
         // apply space for querystring
         rc = get_information_from_url(req, filename, querystring);
         check(rc == DLY_OK, "get_information_from_url error, %d", rc);
-        log_info("filename = %s, querystring = %s", filename, querystring);      
+        debug("filename = %s, querystring = %s", filename, querystring);      
         /*
         *   handle http header
         */
         http_response_t *res = (http_response_t *)malloc(sizeof(http_response_t));
         if (res == NULL) {
             log_err("no enough space for zv_http_out_t");
+
+            #ifdef _TIMEOUT
             if(req->timer != NULL) {
                 req->timer->istimeout = 1;
             }
+            #endif
+
             goto close;
         }
 
@@ -126,9 +156,13 @@ void dorequest(schedule_t *s, void *ud)
             res->status = HTTP_NOT_FOUND;
             do_error(fd, filename, "404", "Not Found", "dlyhttpd can't find the file");
             free(res);
+
+            #ifdef _TIMEOUT
             if(req->timer != NULL) {
                 req->timer->istimeout = 1;
             }
+            #endif
+
             goto close;
         }
 
@@ -137,9 +171,13 @@ void dorequest(schedule_t *s, void *ud)
             res->status = HTTP_FORBIDDEN;
             do_error(fd, filename, "403", "Forbidden", "dlyhttpd can't read the file");
             free(res);
+
+            #ifdef _TIMEOUT
             if(req->timer != NULL) {
                 req->timer->istimeout = 1;
             }
+            #endif
+
             goto close;
         }
         
@@ -157,11 +195,15 @@ void dorequest(schedule_t *s, void *ud)
         }
         
         if (!res->keep_alive) {
-            log_info("no keep_alive! ready to close");
+            debug("no keep_alive! ready to close");
             free(res);
+
+            #ifdef _TIMEOUT
             if(req->timer != NULL) {
                 req->timer->istimeout = 1;
             }
+            #endif
+
             goto close;
         }
         else{
@@ -169,24 +211,35 @@ void dorequest(schedule_t *s, void *ud)
             free(res);
             http_request_t* reqnew = (http_request_t*)malloc(sizeof(http_request_t));
             init_request_t_copy(reqnew, req);
+
+            #ifdef _TIMEOUT
             if(req->timer != NULL) {
                 req->timer->istimeout = 1;
             }
+            #endif
+
             free(req);
             req = reqnew;
+
+            #ifdef _TIMEOUT
             req->timer = add_timer(req, TIMEOUT_DEFAULT);
+            #endif
+
             coroutine_yield(s);
             // yield
+            
+            #ifdef _TIMEOUT
             if(req->timer->istimeout) {
-                log_info("timeout, ready to close fd %d", fd);
+                debug("timeout, ready to close fd %d", fd);
                 // 超时模块中删除
                 goto close;
             }
+            #endif
         }
 
     }
     /*if(req->istimeout) {
-        log_info("timeout, ready to close fd %d", fd);
+        debug("timeout, ready to close fd %d", fd);
         goto close;
     }   // 超时怎么处理*/
     return;
@@ -194,7 +247,10 @@ void dorequest(schedule_t *s, void *ud)
 close:
     free(req);
     close(fd);
+
+    #ifdef _FILELOCK
     serve_fd_num--;
+    #endif
 }
 
 void do_options(int fd) {
@@ -219,10 +275,10 @@ void do_error(int fd, char *cause, char *errnum, char *shortmsg, char *longmsg)
     sprintf(header, "%sContent-type: text/html\r\n", header);
     sprintf(header, "%sConnection: close\r\n", header);
     sprintf(header, "%sContent-length: %d\r\n\r\n", header, (int)strlen(body));
-    //log_info("header  = \n %s\n", header);
+    //debug("header  = \n %s\n", header);
     rio_writen(fd, header, strlen(header));
     rio_writen(fd, body, strlen(body));
-    log_info("leave clienterror\n");
+    debug("leave clienterror\n");
     return;
 }
 

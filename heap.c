@@ -1,5 +1,7 @@
 #include "heap.h"
 
+#define DLY_OK            0
+
 static int resize(heap_t *ht, size_t new_cap);
 static void swap(heap_t *ht, size_t i, size_t j);
 static void swim(heap_t *ht, size_t k);

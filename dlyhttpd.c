@@ -1,8 +1,13 @@
 #include "util.h"
 #include "http.h"
-#include "filelock.h"
 
+#ifdef _FILELOCK
+#include "filelock.h"
+#endif
+
+#ifdef _FILELOCK
 #define MAX_SERVE_FD_NUM    512
+#endif
 
 static const struct option long_options[]=
 {
@@ -23,12 +28,15 @@ static void usage() {
 
 schedule_t * S;
 epoll_t* et;
+
+#ifdef _FILELOCK
 filelock_mutex_t* fmt;
 int serve_fd_num = 0;           // 每个进程服务的连接数
 int isachieve_lock = 0;         // 标志进程是否获得锁
 int isadd_listenfd = 0;         // 是否添加listenfd
+#endif
 
-void timeout_handler(int signo);
+//void timeout_handler(int signo);
 void acceptfun(schedule_t *s, void *ud);
 void workerloop(int listenfd);
 
@@ -73,11 +81,11 @@ int main(int argc, char* argv[])
 
     rc = read_conf(conf_file, &cf);
     check(rc == DLY_OK, "read conf err");
-    log_info("root:%s", cf.root);
-    log_info("port:%d", cf.port);
-    log_info("worker_num:%d", cf.worker_num);
-    //log_info("detect_time_sec:%ld", cf.detect_time_sec);
-    //log_info("detect_time_usec:%ld", cf.detect_time_usec);
+    debug("root:%s", cf.root);
+    debug("port:%d", cf.port);
+    debug("worker_num:%d", cf.worker_num);
+    //debug("detect_time_sec:%ld", cf.detect_time_sec);
+    //debug("detect_time_usec:%ld", cf.detect_time_usec);
 
     struct sigaction sa;
     memset(&sa, '\0', sizeof(sa));
@@ -94,7 +102,9 @@ int main(int argc, char* argv[])
     rc = make_socket_non_blocking(listenfd);
     check(rc == 0, "make_socket_non_blocking");
 
+    #ifdef _FILELOCK
     fmt = filelock_mutex_create();
+    #endif
 
 	int i;
 
@@ -137,7 +147,11 @@ int main(int argc, char* argv[])
         }    
     }
     close(listenfd);
-    filelock_mutex_close(fmt);                
+
+    #ifdef _FILELOCK
+    filelock_mutex_close(fmt);
+    #endif
+
     return 0;
 }
 
@@ -145,15 +159,21 @@ void workerloop(int listenfd)
 {
     et = epoll_create_new(0, 1024);
     S = coroutine_open();
-    timer_init();
-    log_info("%d worker start", getpid());
-    int co1 = coroutine_new(S, acceptfun, (void *)&listenfd);
-    log_info("S->cap:%d, main coroutine:%d", S->cap, co1);
 
-    //epoll_add_para(et, listenfd, co1, EPOLLIN | EPOLLET);
+    #ifdef _TIMEOUT
+    timer_init();
+    #endif
+
+    debug("%d worker start", getpid());
+    int co1 = coroutine_new(S, acceptfun, (void *)&listenfd);
+    debug("S->cap:%d, main coroutine:%d", S->cap, co1);
+
+    #ifndef _FILELOCK
+    epoll_add_para(et, listenfd, co1, EPOLLIN | EPOLLET);
+    #endif
     //epoll_add(et, listenfd, (void*)&co1, EPOLLIN);
 
-    log_info("listenfd = %d", listenfd);
+    debug("listenfd = %d", listenfd);
 
    /* struct itimerval timer;
     timer.it_interval.tv_sec = cf.detect_time_sec;
@@ -178,13 +198,18 @@ void workerloop(int listenfd)
             i = -1;
     }*/
     while(1) {
+
+        #ifdef _TIMEOUT
         // 获取最近超时时间
         int time = get_timeout_node_time();
-        log_info("time = %d", time);
+        debug("time = %d", time);
+        #endif
+
+        #ifdef _FILELOCK
         if(serve_fd_num == 0) {
             epoll_add_para(et, listenfd, co1, EPOLLIN | EPOLLET);
             isadd_listenfd = 1;
-            log_info("add listenfd");
+            debug("add listenfd");
         }
         else if(serve_fd_num > MAX_SERVE_FD_NUM) {
 
@@ -195,33 +220,45 @@ void workerloop(int listenfd)
                 isachieve_lock = 1;
                 epoll_add_para(et, listenfd, co1, EPOLLIN | EPOLLET);
                 isadd_listenfd = 1;
-                log_info("achieve mutex lock, add listenfd");
+                debug("achieve mutex lock, add listenfd");
             }
-        }  
+        }
+        #endif 
 
+        #ifdef _TIMEOUT
         n = epoll_wait_new(et, time);
-        log_info("n = %d", n);
+        #else
+        n = epoll_wait_new(et, -1);
+        #endif
 
+        debug("n = %d", n);
+
+        #ifdef _FILELOCK
         if(isachieve_lock == 1) {
             filelock_mutex_unlock(fmt);
             isachieve_lock = 0;
         }
 
-        if(isadd_listenfd = 1) {
+        if(isadd_listenfd == 1) {
             epoll_del(et, listenfd);
+            isadd_listenfd = 0;
         }
+        #endif
         
+        #ifdef _TIMEOUT
         timer_node_t* tn = handle_timeout_node();
         if(tn != NULL) {
             http_request_t* req = (http_request_t*)(tn->ud);
             coroutine_resume(S, req->coid);
         }
+        #endif
+
         for(i = 0; i < n; i++) {
-            log_info("i = %d", i);
-            log_info("n = %d", n);
-            log_info("%d", et->events[i].data.fd);
+            debug("i = %d", i);
+            debug("n = %d", n);
+            debug("%d", et->events[i].data.fd);
             //fdtmp = et->events[i].data.fd;
-            /*log_info("fdtmp = %d", fdtmp);
+            /*debug("fdtmp = %d", fdtmp);
             if(fdtmp == listenfd) {
                 coroutine_resume(S, *(int *)(et->events[i].data.ptr));
             }
@@ -229,20 +266,26 @@ void workerloop(int listenfd)
                 coroutine_resume(S, *(int *)(et->events[i].data.ptr));
             }*/
             coroutine_resume(S, et->events[i].data.fd);
-            log_info("epoll_process");
+            debug("epoll_process");
         }
     }
 
     coroutine_close(S);
     close(listenfd);
     epoll_close_new(et);
+
+    #ifdef _TIMEOUT
     timer_close();
+    #endif
+
+    #ifdef _FILELOCK
     filelock_mutex_close(fmt);
+    #endif
 }
 
 void acceptfun(schedule_t *S, void *ud)
 {
-    log_info("acceptfun");
+    debug("acceptfun");
     int *lfd = (int *)ud;
     int pcfd;
     struct sockaddr_in clientaddr; 
@@ -252,7 +295,7 @@ void acceptfun(schedule_t *S, void *ud)
         //printf("start accept..\n");
         //pcfd = (int *)malloc(sizeof(int));
         pcfd = accept(*lfd, (struct sockaddr *)&clientaddr, &len);
-        log_info("pcfd = %d", pcfd);
+        debug("pcfd = %d", pcfd);
         //printf("%d\n", *pcfd);
         if(pcfd == -1){
             //free(pcfd);
@@ -271,7 +314,10 @@ void acceptfun(schedule_t *S, void *ud)
             int co = coroutine_new(S, dorequest, (void *)request);
             init_request_t(request, pcfd, co, &cf);
             epoll_add_para(et, pcfd, co, EPOLLIN | EPOLLET);
+
+            #ifdef _FILELOCK
             serve_fd_num++;
+            #endif
         }
     }
 }
