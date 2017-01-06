@@ -1,6 +1,8 @@
 #include "util.h"
 #include "http.h"
 
+#define REBOOT 10
+
 #ifdef _FILELOCK
 #include "filelock.h"
 #endif
@@ -28,6 +30,7 @@ static void usage() {
 
 schedule_t * S;
 epoll_t* et;
+pid_t* pid;
 
 #ifdef _FILELOCK
 filelock_mutex_t* fmt;
@@ -37,6 +40,7 @@ int isadd_listenfd = 0;         // 是否添加listenfd
 #endif
 
 //void timeout_handler(int signo);
+void reboot_handler(int signo);
 void acceptfun(schedule_t *s, void *ud);
 void workerloop(int listenfd);
 
@@ -110,14 +114,15 @@ int main(int argc, char* argv[])
 
     printf("start..\n"); 
 
-    pid_t *pid = malloc(cf.worker_num * sizeof(pid_t));
+    pid = malloc(cf.worker_num * sizeof(pid_t));
     for(i = 0; i < cf.worker_num; i++) {
     	pid[i] = -1;
     }
     for(i = 0; i < cf.worker_num; i++) {
         pid[i] = fork();
-        if(0 == pid[i]) 
-            break;
+        if(0 == pid[i]) {
+            break; 
+        }          
         if(-1 == pid[i]) {
             return 0;
         }
@@ -125,6 +130,7 @@ int main(int argc, char* argv[])
     for(i = 0; i < cf.worker_num; i++) {
     	if(0 == pid[i]) {
         	workerloop(listenfd);
+            
         	return 0;
     	}
     }
@@ -133,6 +139,13 @@ int main(int argc, char* argv[])
         waitpid(pid[i], NULL, 0);
     }*/   
     while(1) {
+
+        struct sigaction act;
+        act.sa_handler = reboot_handler;
+        act.sa_flags = 0;
+        sigemptyset(&act.sa_mask);
+        sigaction(REBOOT, &act, NULL);
+
         pid_t cpid = wait(NULL);
         for(i = 0; i < cf.worker_num; i++) {        
             if(pid[i] == cpid) {
@@ -147,6 +160,8 @@ int main(int argc, char* argv[])
         }    
     }
     close(listenfd);
+
+    free(pid);
 
     #ifdef _FILELOCK
     filelock_mutex_close(fmt);
@@ -164,7 +179,7 @@ void workerloop(int listenfd)
     timer_init();
     #endif
 
-    debug("%d worker start", getpid());
+    log_info("%d worker start", getpid());
     int co1 = coroutine_new(S, acceptfun, (void *)&listenfd);
     debug("S->cap:%d, main coroutine:%d", S->cap, co1);
 
@@ -281,6 +296,9 @@ void workerloop(int listenfd)
     #ifdef _FILELOCK
     filelock_mutex_close(fmt);
     #endif
+
+    free(pid);
+    log_info("%d worker exit", getpid());
 }
 
 void acceptfun(schedule_t *S, void *ud)
@@ -338,3 +356,10 @@ void acceptfun(schedule_t *S, void *ud)
         }
     }
 }*/
+
+void reboot_handler(int signo) {
+    int i;
+    for(i = 0; i < cf.worker_num; i++) {
+        kill(pid[i], 9);
+    }
+}
