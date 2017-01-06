@@ -64,7 +64,11 @@ void epoll_del(epoll_t* et, int fd) {
 }
 
 int epoll_wait_new(epoll_t* et, int timeout) {
-    int n = epoll_wait(et->epfd, et->events, et->maxevents, timeout);
+    int n;
+again:
+    n = epoll_wait(et->epfd, et->events, et->maxevents, timeout);
+    if(n < 0 && errno == EINTR)
+        goto again;
     check(n >= 0, "epoll_wait");
     return n;
 }

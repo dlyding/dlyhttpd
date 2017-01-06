@@ -1,7 +1,8 @@
 #include "util.h"
 #include "http.h"
 
-#define REBOOT 10
+#define REBOOT1 10
+#define REBOOT2 12
 
 #ifdef _FILELOCK
 #include "filelock.h"
@@ -31,6 +32,7 @@ static void usage() {
 schedule_t * S;
 epoll_t* et;
 pid_t* pid;
+int isexit = 0;
 
 #ifdef _FILELOCK
 filelock_mutex_t* fmt;
@@ -40,7 +42,9 @@ int isadd_listenfd = 0;         // 是否添加listenfd
 #endif
 
 //void timeout_handler(int signo);
-void reboot_handler(int signo);
+void reboot1_handler(int signo);
+void reboot2_handler(int signo);
+void changestate_handler(int signo);
 void acceptfun(schedule_t *s, void *ud);
 void workerloop(int listenfd);
 
@@ -140,11 +144,17 @@ int main(int argc, char* argv[])
     }*/   
     while(1) {
 
-        struct sigaction act;
-        act.sa_handler = reboot_handler;
-        act.sa_flags = 0;
-        sigemptyset(&act.sa_mask);
-        sigaction(REBOOT, &act, NULL);
+        struct sigaction act1;
+        act1.sa_handler = reboot1_handler;
+        act1.sa_flags = 0;
+        sigemptyset(&act1.sa_mask);
+        sigaction(REBOOT1, &act1, NULL);
+
+        struct sigaction act2;
+        act2.sa_handler = reboot2_handler;
+        act2.sa_flags = 0;
+        sigemptyset(&act2.sa_mask);
+        sigaction(REBOOT2, &act2, NULL);
 
         pid_t cpid = wait(NULL);
         for(i = 0; i < cf.worker_num; i++) {        
@@ -172,6 +182,14 @@ int main(int argc, char* argv[])
 
 void workerloop(int listenfd)
 {
+    isexit = 0;
+
+    struct sigaction act;
+    act.sa_handler = changestate_handler;
+    act.sa_flags = 0;
+    sigemptyset(&act.sa_mask);
+    sigaction(16, &act, NULL);    // 使用信号16改变子进程状态
+
     et = epoll_create_new(0, 1024);
     S = coroutine_open();
 
@@ -213,6 +231,10 @@ void workerloop(int listenfd)
             i = -1;
     }*/
     while(1) {
+
+        if(isexit == 1) {
+            break;
+        }
 
         #ifdef _TIMEOUT
         // 获取最近超时时间
@@ -357,9 +379,20 @@ void acceptfun(schedule_t *S, void *ud)
     }
 }*/
 
-void reboot_handler(int signo) {
+void reboot1_handler(int signo) {
     int i;
     for(i = 0; i < cf.worker_num; i++) {
         kill(pid[i], 9);
     }
+}
+
+void reboot2_handler(int signo) {
+    int i;
+    for(i = 0; i < cf.worker_num; i++) {
+        kill(pid[i], 16);
+    }
+}
+
+void changestate_handler(int signo) {
+    isexit = 1;
 }
