@@ -8,6 +8,7 @@ static void do_error(int fd, char *cause, char *errnum, char *shortmsg, char *lo
 static void serve_static(int fd, int methodID, char *filename, size_t filesize, http_response_t *res);
 void serve_php(int sfd, int methodID, char *filename, char *querystring, http_response_t *res);
 void do_options(int fd);
+int cal_length_of_message(char* message, int length);
 
 void dorequest(schedule_t *s, void *ud)
 {
@@ -368,7 +369,7 @@ void serve_php(int sfd, int methodID, char *filename, char *querystring, http_re
     if(-1 == cfd){
         log_err("socket error!");
     }
-    printf("%u\n", cf.phpfpm_port);
+    //printf("%u\n", cf.phpfpm_port);
     memset(&serv_addr, 0, sizeof(serv_addr));
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_addr.s_addr = inet_addr(cf.phpfpm_ip);
@@ -448,7 +449,7 @@ void serve_php(int sfd, int methodID, char *filename, char *querystring, http_re
         read(cfd, message, contentLengthR);
         printf("%s\n",message);
     }
-    sprintf(header, "%sContent-length: %d\r\n", header, contentLengthR);
+    sprintf(header, "%sContent-length: %d\r\n", header, cal_length_of_message(message, contentLengthR));
     printf("%s",header);
     printf("%s\n",message);
     write(sfd, header, strlen(header)); 
@@ -456,4 +457,19 @@ void serve_php(int sfd, int methodID, char *filename, char *querystring, http_re
 
     free(message);
     close(cfd);
+}
+
+int cal_length_of_message(char* message, int length) {
+    int count = 0;
+    int i = 0;
+    while(i < length) {
+        if(message[i] == '\r' && message[i + 2] == '\r') {
+            count = length - i - 4;
+            break;
+        }
+        else {
+            i++;
+        }       
+    }
+    return count;
 }
