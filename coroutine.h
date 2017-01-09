@@ -1,5 +1,5 @@
-#ifndef __C_COROUTINE_H__
-#define __C_COROUTINE_H__
+#ifndef __COROUTINE_H__
+#define __COROUTINE_H__
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -12,8 +12,8 @@
 #define STACK_SIZE (1024*1024)
 #define DEFAULT_COROUTINE 16
 
-#define COROUTINE_DEAD 0
-#define COROUTINE_READY 1
+#define COROUTINE_DEAD    0
+#define COROUTINE_READY   1
 #define COROUTINE_RUNNING 2
 #define COROUTINE_SUSPEND 3
 
@@ -26,11 +26,11 @@ typedef struct schedule_s {
 	struct coroutine_s **co;
 } schedule_t;
 
-typedef void (*coroutine_func)(schedule_t *, void *ud);
+typedef void (*coroutine_func)(schedule_t *, void *ptr);
 
 typedef struct coroutine_s {
 	coroutine_func func;
-	void *ud;
+	void *ptr;
 	ucontext_t ctx;
 	schedule_t *sch;
 	ptrdiff_t cap;
@@ -41,8 +41,10 @@ typedef struct coroutine_s {
 
 schedule_t * coroutine_open(void);
 void coroutine_close(schedule_t *S);
+void coroutine_open_stack(schedule_t *S);
+void coroutine_close_stack(schedule_t *S);
 
-int coroutine_new(schedule_t *S, coroutine_func func, void *ud);
+int coroutine_new(schedule_t *S, coroutine_func func, void *ptr);
 void coroutine_resume(schedule_t *S, int id);
 int coroutine_status(schedule_t *S, int id);
 int coroutine_running(schedule_t *S);
