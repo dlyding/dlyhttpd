@@ -17,7 +17,7 @@ void _co_delete(coroutine_t *co) {
 	free(co);
 }
 
-schedule_t * coroutine_open(void) {
+schedule_t * coroutine_open() {
 	schedule_t *S = malloc(sizeof(schedule_t));
 	S->nco = 0;
 	S->cap = DEFAULT_COROUTINE;

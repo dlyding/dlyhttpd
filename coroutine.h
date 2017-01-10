@@ -9,13 +9,13 @@
 #include <string.h>
 #include <stdint.h>
 
-#define STACK_SIZE (1024*1024)
-#define DEFAULT_COROUTINE 16
+#define STACK_SIZE         (1024*1024)
+#define DEFAULT_COROUTINE  16
 
-#define COROUTINE_DEAD    0
-#define COROUTINE_READY   1
-#define COROUTINE_RUNNING 2
-#define COROUTINE_SUSPEND 3
+#define COROUTINE_DEAD     0
+#define COROUTINE_READY    1
+#define COROUTINE_RUNNING  2
+#define COROUTINE_SUSPEND  3
 
 typedef struct schedule_s {
 	char stack[STACK_SIZE];
@@ -39,8 +39,20 @@ typedef struct coroutine_s {
 	char *stack;
 } coroutine_t;
 
-schedule_t * coroutine_open(void);
+// 默认使用堆模式
+// 例如
+// schedule_t *S;
+// S = coroutine_open();
+// ...
+// coroutine_close(S);
+schedule_t * coroutine_open();
 void coroutine_close(schedule_t *S);
+// 使用栈模式需要用户传入一个 schedule_t 类型的变量的地址 
+// 例如
+// schedule_t S;
+// coroutine_open_stack(&S);
+// ...
+// coroutine_close_stack(&S);
 void coroutine_open_stack(schedule_t *S);
 void coroutine_close_stack(schedule_t *S);
 
