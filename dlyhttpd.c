@@ -30,6 +30,7 @@ static void usage() {
 }
 
 schedule_t * S;
+
 epoll_t* et;
 pid_t* pid;
 int isexit = 0;
@@ -191,7 +192,13 @@ void workerloop(int listenfd)
     sigaction(16, &act, NULL);    // 使用信号16改变子进程状态
 
     et = epoll_create_new(0, 1024);
+
+    #ifdef _COROUTINE_HEAP
     S = coroutine_open();
+    #else
+    S = (schedule_t*)alloca(sizeof(schedule_t));
+    coroutine_open_stack(S);
+    #endif
 
     #ifdef _TIMEOUT
     timer_init();
@@ -307,7 +314,12 @@ void workerloop(int listenfd)
         }
     }
 
+    #ifdef _COROUTINE_HEAP
     coroutine_close(S);
+    #else
+    coroutine_close_stack(S);
+    #endif
+    
     close(listenfd);
     epoll_close_new(et);
 

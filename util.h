@@ -31,6 +31,7 @@
 
 #define _FILELOCK
 #define _TIMEOUT
+//#define _COROUTINE_HEAP
 
 #ifdef _TIMEOUT
 #include "timer.h"
